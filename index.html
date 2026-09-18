@@ -102,6 +102,13 @@ tr:hover td{background:#f9fbfd;}
 .pill-pass{background:#e4f5ea;color:var(--lvl4);}
 .pill-fail{background:#fdeceb;color:var(--lvl1);}
 .pill-untested{background:#eef1f5;color:var(--muted);}
+.ans-pass{background:#e4f5ea;color:var(--lvl4);font-weight:700;}
+.ans-fail{background:#fdeceb;color:var(--lvl1);font-weight:700;}
+.ans-untested{background:#eef1f5;color:var(--muted);font-weight:700;}
+.ans-table{border-collapse:collapse;text-align:center;}
+.ans-table th,.ans-table td{border:1px solid var(--border);padding:6px 10px;white-space:nowrap;}
+.ans-table th{background:#f4f6f9;color:var(--navy-light);font-size:var(--fs-xs);}
+.ans-table td:first-child,.ans-table th:first-child{text-align:left;font-weight:700;background:#f4f6f9;position:sticky;left:0;}
 .remedial{background:#fff7ec;border:1px solid #f2dcb8;border-radius:8px;padding:8px 12px;font-size:var(--fs-sm);color:#8a5a1e;margin-top:8px;}
 .passage-box{background:#fbfaf6;border:1px solid #ece5d3;border-radius:8px;padding:14px 16px;font-size:var(--fs-md);line-height:2.1;margin-bottom:12px;}
 .reading-controls{display:flex;gap:8px;}
@@ -1417,26 +1424,30 @@ function renderReportStudentSelectors(){
   document.getElementById('reportStudentRoundSelect').onchange=renderReportStudentArea;
   renderReportStudentArea();
 }
-function itemDetailRowsHTML(sid,topic,round){
+function topicAnswerTableHTML(sid,topic,round){
   const tres = getResult(sid,round)[topic.no] || {};
   if(topic.type==='reading'){
     const v = tres.reading;
-    const mark = v===undefined?'<span class="pill pill-untested">ยังไม่ทำ</span>':
-      v?'<span class="pill pill-pass">✓ ถูกต้อง</span>':'<span class="pill pill-fail">✗ ไม่ถูกต้อง</span>';
-    return `<tr><td>การอ่านแบ่งวรรคตอน (${topic.name})</td><td style="width:130px;">${mark}</td></tr>`;
+    const mark = v===undefined?'ยังไม่ทำ':v?'ถูก':'ผิด';
+    const cls = v===undefined?'ans-untested':v?'ans-pass':'ans-fail';
+    return `<div style="overflow-x:auto;"><table class="ans-table">
+      <thead><tr><th>หน่วยที่ ${topic.no}</th><th>การอ่านแบ่งวรรคตอน</th></tr></thead>
+      <tbody><tr><td>คำตอบ</td><td class="${cls}">${mark}</td></tr></tbody>
+    </table></div>`;
   }
-  let idx=0, rows='';
-  topic.sections.forEach(sec=>{
-    rows+=`<tr><td colspan="2" style="background:#f4f6f9;font-weight:700;color:var(--navy-light);font-size:var(--fs-sm);">${sec.name}</td></tr>`;
-    sec.items.forEach(it=>{
-      const curIdx=idx; idx++;
-      const v = tres[curIdx];
-      const mark = v===undefined?'<span class="pill pill-untested">ยังไม่ทำ</span>':
-        v?'<span class="pill pill-pass">✓ ถูก</span>':'<span class="pill pill-fail">✗ ผิด</span>';
-      rows+=`<tr><td>${it.q}</td><td style="width:130px;">${mark}</td></tr>`;
-    });
-  });
-  return rows;
+  let items=[];
+  topic.sections.forEach(sec=>{ sec.items.forEach(it=>items.push(it)); });
+  const headerCells = items.map((it,i)=>`<th>ข้อที่ ${i+1}</th>`).join('');
+  const bodyCells = items.map((it,i)=>{
+    const v = tres[i];
+    const mark = v===undefined?'ยังไม่ทำ':v?'ถูก':'ผิด';
+    const cls = v===undefined?'ans-untested':v?'ans-pass':'ans-fail';
+    return `<td class="${cls}">${mark}</td>`;
+  }).join('');
+  return `<div style="overflow-x:auto;"><table class="ans-table">
+    <thead><tr><th>หน่วยที่ ${topic.no}</th>${headerCells}</tr></thead>
+    <tbody><tr><td>คำตอบ</td>${bodyCells}</tr></tbody>
+  </table></div>`;
 }
 function itemDetailSectionHTML(sid,round){
   return TOPICS.map(t=>{
@@ -1449,7 +1460,7 @@ function itemDetailSectionHTML(sid,round){
       <h3 style="margin-top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <span>ชุดที่ ${t.no} · ${t.name}</span> ${pill}
       </h3>
-      <table><tbody>${itemDetailRowsHTML(sid,t,round)}</tbody></table>
+      ${topicAnswerTableHTML(sid,t,round)}
     </div>`;
   }).join('');
 }
