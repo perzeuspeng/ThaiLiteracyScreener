@@ -129,6 +129,7 @@ tr:hover td{background:#f9fbfd;}
 canvas{max-width:100%;height:auto;}
 .printable{display:none;}
 @media print{
+  @page{size:A4;margin:25mm 20mm 20mm 30mm;} /* มาตรฐานระยะขอบเอกสารราชการ: บน 2.5 ซม. / ล่าง 2 ซม. / ซ้าย 3 ซม. / ขวา 2 ซม. */
   .sidebar,.toolbar,.no-print,.nav-item,.topbar,.sidebar-backdrop{display:none !important;}
   main{padding:0;max-width:100%;}
   .app{display:block;}
@@ -137,6 +138,38 @@ canvas{max-width:100%;height:auto;}
   .screen{display:none !important;}
   .printable{display:block !important;}
 }
+/* =====================================================================
+   PDF EXPORT DOCUMENT MODE — จัดรูปแบบแยกอิสระจากโหมดแสดงผลบนหน้าจอ
+   ใช้เฉพาะตอนสร้างไฟล์ PDF (exportToPDF): ขาวดำล้วน, ไม่มีเงา/มุมโค้ง,
+   ใช้เส้นขอบตารางแบบเอกสารราชการ, ขนาดตัวอักษรเป็นสเกลของตัวเองไม่อิง
+   ตัวแปร --fs-* ที่ใช้กับหน้าจอ
+   ===================================================================== */
+.pdf-doc, .pdf-doc *{
+  color:#000 !important;
+  background:#fff !important;
+  box-shadow:none !important;
+  border-radius:0 !important;
+  text-shadow:none !important;
+}
+.pdf-doc{font-family:'Sarabun',sans-serif;font-size:16px;line-height:1.7;}
+.pdf-doc .card{border:1px solid #000;padding:14px 16px;margin-bottom:14px;}
+.pdf-doc .card h3{border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:12px;font-size:18px;}
+.pdf-doc table{width:100%;border-collapse:collapse;font-size:15px;}
+.pdf-doc th,.pdf-doc td{border:1px solid #000 !important;padding:6px 8px;}
+.pdf-doc th{background:#e8e8e8 !important;font-weight:700;}
+.pdf-doc .ans-table th:first-child,.pdf-doc .ans-table td:first-child{background:#e8e8e8 !important;position:static !important;}
+.pdf-doc .pill,.pdf-doc .badge,.pdf-doc .ans-pass,.pdf-doc .ans-fail,.pdf-doc .ans-untested{
+  background:#fff !important;color:#000 !important;border:1px solid #000 !important;border-radius:0 !important;padding:2px 8px;font-weight:700;display:inline-block;
+}
+.pdf-doc .ans-fail{text-decoration:underline;}
+.pdf-doc .ans-untested{font-style:italic;font-weight:400;}
+.pdf-doc .stat-hero,.pdf-doc .stat-box,.pdf-doc .topic-card,.pdf-doc .remedial,.pdf-doc .note,.pdf-doc .passage-box{border:1px solid #000 !important;}
+.pdf-doc .print-header{border-bottom:2px solid #000;text-align:center;margin-bottom:18px;padding-bottom:10px;}
+.pdf-doc .print-header h2{font-size:20px;margin:6px 0;}
+.pdf-doc .print-meta{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;font-size:15px;margin-bottom:14px;}
+.pdf-doc .group-row{border-bottom:1px dashed #000;font-size:15px;}
+.pdf-doc h2,.pdf-doc h3{font-family:'Sarabun',sans-serif;}
+.pdf-doc .pdf-pagefooter{text-align:center;font-size:12px;color:#000;margin-top:6px;}
 .print-header{text-align:center;margin-bottom:18px;border-bottom:2px solid var(--navy);padding-bottom:10px;}
 .print-header h2{margin:4px 0;color:var(--navy-dark);}
 .print-meta{display:flex;justify-content:space-between;font-size:var(--fs-sm);margin-bottom:14px;flex-wrap:wrap;gap:6px;}
@@ -1798,7 +1831,9 @@ document.getElementById('pdfRemedialBtn').addEventListener('click',async ()=>{
   await exportToPDF('printArea', `รายงานกลุ่มซ่อมเสริม-${round==='post'?'หลังเรียน':'ก่อนเรียน'}-${dateStr}.pdf`);
 });
 
-/* ============================= PDF EXPORT (html2canvas + jsPDF) ============================= */
+/* ============================= PDF EXPORT (html2canvas + jsPDF) =============================
+   จัดรูปแบบเป็นเอกสารราชการ: กระดาษ A4, ระยะขอบมาตรฐาน (บน 2.5 ซม./ล่าง 2 ซม./ซ้าย 3 ซม./ขวา 2 ซม.),
+   ขาวดำล้วน (ใช้คลาส .pdf-doc แยกอิสระจาก CSS ที่ใช้แสดงผลบนหน้าจอ), มีเลขหน้ากำกับทุกหน้า */
 async function exportToPDF(containerId, filename){
   if(typeof html2canvas==='undefined' || !window.jspdf){
     alertToast('ไม่สามารถโหลดไลบรารีสร้าง PDF ได้ (ต้องมีอินเทอร์เน็ต) กรุณาใช้ปุ่ม "พิมพ์รายงาน" แล้วเลือก "บันทึกเป็น PDF" แทน',5000);
@@ -1806,35 +1841,63 @@ async function exportToPDF(containerId, filename){
   }
   const el=document.getElementById(containerId);
   alertToast('กำลังสร้างไฟล์ PDF กรุณารอสักครู่...',4000);
-  // make the (normally print-only) container visible off-screen for capture
+
+  // ระยะขอบมาตรฐานเอกสารราชการ (มม.): บน 25 / ขวา 20 / ล่าง 20 / ซ้าย 30
+  const PAGE_MM = {w:210, h:297};
+  const M = {top:25, right:20, bottom:20, left:30};
+  const CONTENT_W_MM = PAGE_MM.w - M.left - M.right;   // พื้นที่เนื้อหาแนวนอน
+  const CONTENT_H_MM = PAGE_MM.h - M.top - M.bottom;   // พื้นที่เนื้อหาต่อหน้า (แนวตั้ง)
+  const PX_PER_MM = 96/25.4;
+  const renderWidthPx = Math.round(CONTENT_W_MM*PX_PER_MM); // ความกว้างเรนเดอร์ ให้สัดส่วนตรงกับ 160mm จริง
+
   const prevStyle = el.getAttribute('style')||'';
-  el.style.cssText='display:block;position:fixed;left:-9999px;top:0;width:780px;background:#fff;padding:24px;z-index:-1;';
+  el.classList.add('pdf-doc'); // สลับไปใช้ชุดสไตล์เอกสารขาวดำ แยกอิสระจากโหมดแสดงผล
+  el.style.cssText = `display:block;position:fixed;left:-9999px;top:0;width:${renderWidthPx}px;background:#fff;padding:0;z-index:-1;`;
   await new Promise(r=>setTimeout(r,80));
   try{
     const canvas = await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p','mm','a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = canvas.height * imgWidth / canvas.width;
+    const imgWidthMM = CONTENT_W_MM;
+    const imgHeightMM = canvas.height * imgWidthMM / canvas.width;
     const imgData = canvas.toDataURL('image/png');
-    let heightLeft = imgHeight;
-    let position = 0;
-    pdf.addImage(imgData,'PNG',0,position,imgWidth,imgHeight);
-    heightLeft -= pageHeight;
+
+    let heightLeft = imgHeightMM;
+    let position = M.top; // ตำแหน่ง y เริ่มต้น = เว้นระยะขอบบน
+    pdf.addImage(imgData,'PNG',M.left,position,imgWidthMM,imgHeightMM);
+    maskMargins(pdf,PAGE_MM,M);
+    heightLeft -= CONTENT_H_MM;
     while(heightLeft > 0){
-      position = -(imgHeight - heightLeft);
+      position = M.top - (imgHeightMM - heightLeft);
       pdf.addPage();
-      pdf.addImage(imgData,'PNG',0,position,imgWidth,imgHeight);
-      heightLeft -= pageHeight;
+      pdf.addImage(imgData,'PNG',M.left,position,imgWidthMM,imgHeightMM);
+      maskMargins(pdf,PAGE_MM,M);
+      heightLeft -= CONTENT_H_MM;
     }
+
+    // เลขหน้ากำกับทุกหน้า ตามรูปแบบเอกสารราชการ
+    const totalPages = pdf.internal.getNumberOfPages();
+    for(let i=1;i<=totalPages;i++){
+      pdf.setPage(i);
+      pdf.setFontSize(9);
+      pdf.setTextColor(0,0,0);
+      pdf.text(`หน้า ${i}/${totalPages}`, PAGE_MM.w/2, PAGE_MM.h - (M.bottom/2), {align:'center'});
+    }
+
     pdf.save(filename);
   }catch(err){
     alertToast('สร้าง PDF ไม่สำเร็จ: '+err.message+' - กรุณาใช้ปุ่ม "พิมพ์รายงาน" แทน',5000);
   }finally{
+    el.classList.remove('pdf-doc');
     el.setAttribute('style',prevStyle);
   }
+}
+// ปิดทับส่วนเกินของภาพที่อาจล้นเข้าเขตระยะขอบ (บน/ล่าง/ขวา) ด้วยพื้นที่สีขาว ให้ระยะขอบสะอาดแน่นอนทุกหน้า
+function maskMargins(pdf,PAGE_MM,M){
+  pdf.setFillColor(255,255,255);
+  pdf.rect(0, 0, PAGE_MM.w, M.top, 'F');
+  pdf.rect(0, PAGE_MM.h-M.bottom, PAGE_MM.w, M.bottom, 'F');
+  pdf.rect(PAGE_MM.w-M.right, 0, M.right, PAGE_MM.h, 'F');
 }
 
 /* ============================= BACKUP UI WIRING ============================= */
