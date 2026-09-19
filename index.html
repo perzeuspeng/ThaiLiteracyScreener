@@ -152,7 +152,7 @@ canvas{max-width:100%;height:auto;}
   text-shadow:none !important;
 }
 .pdf-doc{font-family:'Sarabun',sans-serif;font-size:16px;line-height:1.7;}
-.pdf-doc .card{border:1px solid #000;padding:14px 16px;margin-bottom:14px;}
+.pdf-doc .card{border:1px solid #000 !important;padding:14px 16px;margin-bottom:14px;}
 .pdf-doc .card h3{border-bottom:1px solid #000;padding-bottom:6px;margin-bottom:12px;font-size:18px;}
 .pdf-doc table{width:100%;border-collapse:collapse;font-size:15px;}
 .pdf-doc th,.pdf-doc td{border:1px solid #000 !important;padding:6px 8px;}
@@ -170,6 +170,7 @@ canvas{max-width:100%;height:auto;}
 .pdf-doc .group-row{border-bottom:1px dashed #000;font-size:15px;}
 .pdf-doc h2,.pdf-doc h3{font-family:'Sarabun',sans-serif;}
 .pdf-doc .pdf-pagefooter{text-align:center;font-size:12px;color:#000;margin-top:6px;}
+.pdf-doc .dot{border-radius:50% !important;}
 .print-header{text-align:center;margin-bottom:18px;border-bottom:2px solid var(--navy);padding-bottom:10px;}
 .print-header h2{margin:4px 0;color:var(--navy-dark);}
 .print-meta{display:flex;justify-content:space-between;font-size:var(--fs-sm);margin-bottom:14px;flex-wrap:wrap;gap:6px;}
@@ -1326,44 +1327,48 @@ function renderAssessArea(){
 }
 
 /* ============================= CHARTS (canvas) ============================= */
-function drawDonut(canvas,segments,legendEl){
+function drawDonut(canvas,segments,legendEl,mono){
   const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height;
   ctx.clearRect(0,0,w,h);
   const total=segments.reduce((a,s)=>a+s.value,0);
   const cx=w*0.35, cy=h/2, r=Math.min(cx,cy)-10, rw=28;
+  const grays=['#1a1a1a','#4d4d4d','#808080','#a6a6a6','#d0d0d0'];
+  const segColor=(s,i)=> mono ? grays[i%grays.length] : s.color;
   if(total===0){
-    ctx.fillStyle='#a0aab8'; ctx.font='14px Sarabun'; ctx.textAlign='center';
+    ctx.fillStyle=mono?'#666':'#a0aab8'; ctx.font='14px Sarabun'; ctx.textAlign='center';
     ctx.fillText('ยังไม่มีข้อมูล',w/2,h/2);
     if(legendEl) legendEl.innerHTML='';
     return;
   }
   let start=-Math.PI/2;
-  segments.forEach(s=>{
+  segments.forEach((s,i)=>{
     const angle=(s.value/total)*Math.PI*2;
     ctx.beginPath(); ctx.arc(cx,cy,r,start,start+angle); ctx.arc(cx,cy,r-rw,start+angle,start,true); ctx.closePath();
-    ctx.fillStyle=s.color; ctx.fill();
+    ctx.fillStyle=segColor(s,i); ctx.fill();
+    if(mono){ ctx.strokeStyle='#fff'; ctx.lineWidth=2; ctx.stroke(); }
     start+=angle;
   });
-  ctx.fillStyle='#243447'; ctx.font='bold 20px Sarabun'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle=mono?'#000':'#243447'; ctx.font='bold 20px Sarabun'; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(total,cx,cy-8);
-  ctx.font='11px Sarabun'; ctx.fillStyle='#6b7a90';
+  ctx.font='11px Sarabun'; ctx.fillStyle=mono?'#333':'#6b7a90';
   ctx.fillText('คน',cx,cy+12);
   if(legendEl){
-    legendEl.innerHTML = segments.map(s=>`<span><span class="dot" style="background:${s.color}"></span>${s.label} (${s.value})</span>`).join('');
+    legendEl.innerHTML = segments.map((s,i)=>`<span><span class="dot" style="background:${segColor(s,i)}"></span>${s.label} (${s.value})</span>`).join('');
   }
 }
 function drawBarChart(canvas,labels,values,opts){
   opts=opts||{};
+  const mono=opts.mono;
   const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height;
   ctx.clearRect(0,0,w,h);
   const padL=36,padB=70,padT=16,padR=12;
   const chartW=w-padL-padR, chartH=h-padT-padB;
   const max=opts.max||100;
   const n=labels.length;
-  if(n===0){ ctx.fillStyle='#a0aab8';ctx.font='14px Sarabun';ctx.textAlign='center';ctx.fillText('ยังไม่มีข้อมูล',w/2,h/2); return; }
+  if(n===0){ ctx.fillStyle=mono?'#666':'#a0aab8';ctx.font='14px Sarabun';ctx.textAlign='center';ctx.fillText('ยังไม่มีข้อมูล',w/2,h/2); return; }
   const barW=chartW/n*0.6, gap=chartW/n;
   // gridlines
-  ctx.strokeStyle='#e5e9ef'; ctx.fillStyle='#6b7a90'; ctx.font='10px Sarabun'; ctx.textAlign='right';
+  ctx.strokeStyle=mono?'#cccccc':'#e5e9ef'; ctx.fillStyle=mono?'#000':'#6b7a90'; ctx.font='10px Sarabun'; ctx.textAlign='right';
   for(let g=0;g<=4;g++){
     const y=padT+chartH-(chartH*g/4);
     ctx.beginPath(); ctx.moveTo(padL,y); ctx.lineTo(w-padR,y); ctx.stroke();
@@ -1373,16 +1378,20 @@ function drawBarChart(canvas,labels,values,opts){
     const x=padL+gap*i+(gap-barW)/2;
     const barH=chartH*(Math.min(v,max)/max);
     const y=padT+chartH-barH;
-    const grad=ctx.createLinearGradient(0,y,0,y+barH);
-    grad.addColorStop(0,opts.color2||'#2c5282'); grad.addColorStop(1,opts.color||'#1e3a5f');
-    ctx.fillStyle=grad;
+    if(mono){
+      ctx.fillStyle='#333333';
+    }else{
+      const grad=ctx.createLinearGradient(0,y,0,y+barH);
+      grad.addColorStop(0,opts.color2||'#2c5282'); grad.addColorStop(1,opts.color||'#1e3a5f');
+      ctx.fillStyle=grad;
+    }
     ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x,y,barW,barH,4) : ctx.rect(x,y,barW,barH); ctx.fill();
-    ctx.fillStyle='#243447'; ctx.font='bold 10.5px Sarabun'; ctx.textAlign='center';
+    ctx.fillStyle=mono?'#000':'#243447'; ctx.font='bold 10.5px Sarabun'; ctx.textAlign='center';
     ctx.fillText(Math.round(v)+(opts.suffix||''),x+barW/2,y-4);
     ctx.save();
     ctx.translate(x+barW/2,padT+chartH+14);
     ctx.rotate(labels[i].length>6?-0.5:0);
-    ctx.fillStyle='#4a5a70'; ctx.font='10.5px Sarabun'; ctx.textAlign=labels[i].length>6?'right':'center';
+    ctx.fillStyle=mono?'#000':'#4a5a70'; ctx.font='10.5px Sarabun'; ctx.textAlign=labels[i].length>6?'right':'center';
     ctx.fillText(labels[i],0,0);
     ctx.restore();
   });
@@ -1646,18 +1655,18 @@ function reportClassHTML(cid,round){
     <tbody>${rows||'<tr><td colspan="4" class="empty-state">ไม่มีนักเรียนในชั้นนี้</td></tr>'}</tbody></table>
   `;
 }
-function drawClassCharts(cid,round){
+function drawClassCharts(cid,round,mono){
   const students=studentsInClass(cid);
   const segs=levelDistributionSegments(students,round);
   const donutCanvas=document.getElementById('classDonut_'+cid);
-  if(donutCanvas) drawDonut(donutCanvas,segs,document.getElementById('classDonutLegend_'+cid));
+  if(donutCanvas) drawDonut(donutCanvas,segs,document.getElementById('classDonutLegend_'+cid),mono);
   const topicPassRate = TOPICS.map(t=>{
     const tested = students.map(s=>topicStatus(s.id,t,round)).filter(r=>r.status==='pass'||r.status==='fail');
     const pass = tested.filter(r=>r.status==='pass').length;
     return tested.length? Math.round(pass/tested.length*100):0;
   });
   const barCanvas=document.getElementById('classBar_'+cid);
-  if(barCanvas) drawBarChart(barCanvas, TOPICS.map(t=>'ชุด'+t.no), topicPassRate, {max:100,suffix:'%'});
+  if(barCanvas) drawBarChart(barCanvas, TOPICS.map(t=>'ชุด'+t.no), topicPassRate, {max:100,suffix:'%',mono});
 }
 function renderReportClassArea(){
   const cid=document.getElementById('reportClassSelect').value;
@@ -1680,7 +1689,7 @@ document.getElementById('pdfClassBtn').addEventListener('click',async ()=>{
   if(!cid){ alertToast('กรุณาเลือกชั้นเรียนก่อนส่งออก'); return; }
   const cls=DATA.classes.find(c=>c.id===cid);
   document.getElementById('printArea').innerHTML=reportClassHTML(cid,round);
-  drawClassCharts(cid,round);
+  drawClassCharts(cid,round,true);
   await exportToPDF('printArea', `รายงานรายชั้น-${(cls&&cls.name)||'ชั้นเรียน'}-${round==='post'?'หลังเรียน':'ก่อนเรียน'}.pdf`);
 });
 
@@ -1717,10 +1726,10 @@ function reportSchoolHTML(round){
     <canvas id="schoolTopicBar" width="760" height="260"></canvas>
   `;
 }
-function drawSchoolCharts(round){
+function drawSchoolCharts(round,mono){
   const allStudents=DATA.students;
   const segs=levelDistributionSegments(allStudents,round);
-  const dc=document.getElementById('schoolDonut'); if(dc) drawDonut(dc,segs,document.getElementById('schoolDonutLegend'));
+  const dc=document.getElementById('schoolDonut'); if(dc) drawDonut(dc,segs,document.getElementById('schoolDonutLegend'),mono);
 
   const classLabels=DATA.classes.map(c=>c.name);
   const classAvg=DATA.classes.map(c=>{
@@ -1728,14 +1737,14 @@ function drawSchoolCharts(round){
     const sum=students.reduce((a,s)=>a+evaluateStudent(s.id,round).passedCount,0);
     return students.length? (sum/students.length/13*100):0;
   });
-  const cb=document.getElementById('schoolClassBar'); if(cb) drawBarChart(cb,classLabels,classAvg,{max:100,suffix:'%',color:'#2f9e6f',color2:'#4fc590'});
+  const cb=document.getElementById('schoolClassBar'); if(cb) drawBarChart(cb,classLabels,classAvg,{max:100,suffix:'%',color:'#2f9e6f',color2:'#4fc590',mono});
 
   const topicPassRate = TOPICS.map(t=>{
     const tested = allStudents.map(s=>topicStatus(s.id,t,round)).filter(r=>r.status==='pass'||r.status==='fail');
     const pass = tested.filter(r=>r.status==='pass').length;
     return tested.length? Math.round(pass/tested.length*100):0;
   });
-  const tb=document.getElementById('schoolTopicBar'); if(tb) drawBarChart(tb,TOPICS.map(t=>'ชุด'+t.no+' '+t.name.slice(0,6)),topicPassRate,{max:100,suffix:'%'});
+  const tb=document.getElementById('schoolTopicBar'); if(tb) drawBarChart(tb,TOPICS.map(t=>'ชุด'+t.no+' '+t.name.slice(0,6)),topicPassRate,{max:100,suffix:'%',mono});
 }
 function renderReportSchool(){
   const round=document.getElementById('reportSchoolRoundSelect').value||'pre';
@@ -1752,7 +1761,7 @@ document.getElementById('printSchoolBtn').addEventListener('click',()=>{
 document.getElementById('pdfSchoolBtn').addEventListener('click',async ()=>{
   const round=document.getElementById('reportSchoolRoundSelect').value||'pre';
   document.getElementById('printArea').innerHTML=reportSchoolHTML(round);
-  drawSchoolCharts(round);
+  drawSchoolCharts(round,true);
   const dateStr=new Date().toISOString().slice(0,10);
   await exportToPDF('printArea', `รายงานภาพรวมโรงเรียน-${round==='post'?'หลังเรียน':'ก่อนเรียน'}-${dateStr}.pdf`);
 });
@@ -1833,7 +1842,92 @@ document.getElementById('pdfRemedialBtn').addEventListener('click',async ()=>{
 
 /* ============================= PDF EXPORT (html2canvas + jsPDF) =============================
    จัดรูปแบบเป็นเอกสารราชการ: กระดาษ A4, ระยะขอบมาตรฐาน (บน 2.5 ซม./ล่าง 2 ซม./ซ้าย 3 ซม./ขวา 2 ซม.),
-   ขาวดำล้วน (ใช้คลาส .pdf-doc แยกอิสระจาก CSS ที่ใช้แสดงผลบนหน้าจอ), มีเลขหน้ากำกับทุกหน้า */
+   ขาวดำล้วน (ใช้คลาส .pdf-doc แยกอิสระจาก CSS ที่ใช้แสดงผลบนหน้าจอ), มีเลขหน้ากำกับทุกหน้า
+   สำคัญ: การขึ้นหน้าใหม่จะตัดเฉพาะ "ระหว่างบล็อก" หรือ "ระหว่างแถวตาราง" เท่านั้น
+   ไม่มีทางตัดผ่านกลางแถว/กลางตารางเด็ดขาด และหัวตารางจะพิมพ์ซ้ำทุกหน้าที่ตารางมีต่อ */
+function pdfEnsureSpace(pdf, ctx, neededMM){
+  const availableMM = ctx.CONTENT_H_MM - (ctx.cursorY - ctx.M.top);
+  if(neededMM > availableMM + 0.01){
+    pdf.addPage();
+    ctx.cursorY = ctx.M.top;
+    return true;
+  }
+  return false;
+}
+function pdfCropCanvas(src, sx, sy, sw, sh){
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(sw));
+  c.height = Math.max(1, Math.round(sh));
+  const cctx = c.getContext('2d');
+  cctx.drawImage(src, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  return c;
+}
+async function pdfLayoutTable(pdf, table, ctx){
+  const rect = table.getBoundingClientRect();
+  const widthMM = rect.width * ctx.mmPerPx;
+  const xMM = ctx.M.left + (rect.left - ctx.containerRect.left) * ctx.mmPerPx;
+  const canvas = await html2canvas(table,{scale:ctx.scale,backgroundColor:'#ffffff',useCORS:true});
+  const canvasScaleY = canvas.height / table.offsetHeight;
+  const thead = table.querySelector('thead');
+  const headerHeightPx = thead ? thead.offsetHeight : 0;
+  const headerHeightMM = headerHeightPx * ctx.mmPerPx;
+  const headerCanvas = headerHeightPx>0 ? pdfCropCanvas(canvas,0,0,canvas.width, headerHeightPx*canvasScaleY) : null;
+
+  const placeHeader = ()=>{
+    if(!headerCanvas) return;
+    pdf.addImage(headerCanvas.toDataURL('image/png'),'PNG', xMM, ctx.cursorY, widthMM, headerHeightMM);
+    ctx.cursorY += headerHeightMM;
+  };
+
+  pdfEnsureSpace(pdf, ctx, headerHeightMM + 6);
+  placeHeader();
+
+  const bodyContainer = table.querySelector('tbody') || table;
+  const rows = Array.from(bodyContainer.children).filter(r=>r.tagName==='TR');
+  let groupStartPx = headerHeightPx;
+  let i = 0;
+  while(i < rows.length){
+    let j = i, groupEndPx = groupStartPx;
+    while(j < rows.length){
+      const rowBottomPx = rows[j].offsetTop + rows[j].offsetHeight;
+      const candidateMM = (rowBottomPx - groupStartPx) * ctx.mmPerPx;
+      const availableMM = ctx.CONTENT_H_MM - (ctx.cursorY - ctx.M.top);
+      if(candidateMM > availableMM) break;
+      groupEndPx = rowBottomPx; j++;
+    }
+    if(j===i){
+      // แม้แถวเดียวก็ไม่พอสำหรับพื้นที่ที่เหลือในหน้านี้ -> ขึ้นหน้าใหม่แล้วพิมพ์หัวตารางซ้ำ
+      pdf.addPage(); ctx.cursorY = ctx.M.top;
+      placeHeader();
+      continue;
+    }
+    const sy = groupStartPx*canvasScaleY, sh=(groupEndPx-groupStartPx)*canvasScaleY;
+    const sliceCanvas = pdfCropCanvas(canvas,0,sy,canvas.width,sh);
+    const sliceHeightMM = (groupEndPx-groupStartPx)*ctx.mmPerPx;
+    pdf.addImage(sliceCanvas.toDataURL('image/png'),'PNG', xMM, ctx.cursorY, widthMM, sliceHeightMM);
+    ctx.cursorY += sliceHeightMM;
+    i = j; groupStartPx = groupEndPx;
+  }
+  ctx.cursorY += ctx.gapMM;
+}
+async function pdfLayoutNode(pdf, node, ctx){
+  if(node.tagName==='TABLE'){ await pdfLayoutTable(pdf, node, ctx); return; }
+  const rect = node.getBoundingClientRect();
+  const widthMM = rect.width * ctx.mmPerPx;
+  const heightMM = rect.height * ctx.mmPerPx;
+  const xMM = ctx.M.left + (rect.left - ctx.containerRect.left) * ctx.mmPerPx;
+  if(heightMM <= ctx.CONTENT_H_MM || node.children.length===0){
+    const canvas = await html2canvas(node,{scale:ctx.scale,backgroundColor:'#ffffff',useCORS:true});
+    pdfEnsureSpace(pdf, ctx, heightMM);
+    pdf.addImage(canvas.toDataURL('image/png'),'PNG', xMM, ctx.cursorY, widthMM, heightMM);
+    ctx.cursorY += heightMM + ctx.gapMM;
+  }else{
+    // บล็อกนี้สูงเกินหนึ่งหน้าและยังแตกย่อยได้ -> แยกลงไปทีละลูก (แต่ละลูกจะถูกตรวจสอบซ้ำ รวมถึงตารางภายใน)
+    for(const child of Array.from(node.children)){
+      await pdfLayoutNode(pdf, child, ctx);
+    }
+  }
+}
 async function exportToPDF(containerId, filename){
   if(typeof html2canvas==='undefined' || !window.jspdf){
     alertToast('ไม่สามารถโหลดไลบรารีสร้าง PDF ได้ (ต้องมีอินเทอร์เน็ต) กรุณาใช้ปุ่ม "พิมพ์รายงาน" แล้วเลือก "บันทึกเป็น PDF" แทน',5000);
@@ -1845,37 +1939,26 @@ async function exportToPDF(containerId, filename){
   // ระยะขอบมาตรฐานเอกสารราชการ (มม.): บน 25 / ขวา 20 / ล่าง 20 / ซ้าย 30
   const PAGE_MM = {w:210, h:297};
   const M = {top:25, right:20, bottom:20, left:30};
-  const CONTENT_W_MM = PAGE_MM.w - M.left - M.right;   // พื้นที่เนื้อหาแนวนอน
-  const CONTENT_H_MM = PAGE_MM.h - M.top - M.bottom;   // พื้นที่เนื้อหาต่อหน้า (แนวตั้ง)
+  const CONTENT_W_MM = PAGE_MM.w - M.left - M.right;
+  const CONTENT_H_MM = PAGE_MM.h - M.top - M.bottom;
   const PX_PER_MM = 96/25.4;
-  const renderWidthPx = Math.round(CONTENT_W_MM*PX_PER_MM); // ความกว้างเรนเดอร์ ให้สัดส่วนตรงกับ 160mm จริง
+  const renderWidthPx = Math.round(CONTENT_W_MM*PX_PER_MM);
 
   const prevStyle = el.getAttribute('style')||'';
-  el.classList.add('pdf-doc'); // สลับไปใช้ชุดสไตล์เอกสารขาวดำ แยกอิสระจากโหมดแสดงผล
+  el.classList.add('pdf-doc');
   el.style.cssText = `display:block;position:fixed;left:-9999px;top:0;width:${renderWidthPx}px;background:#fff;padding:0;z-index:-1;`;
   await new Promise(r=>setTimeout(r,80));
   try{
-    const canvas = await html2canvas(el,{scale:2,backgroundColor:'#ffffff',useCORS:true});
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p','mm','a4');
-    const imgWidthMM = CONTENT_W_MM;
-    const imgHeightMM = canvas.height * imgWidthMM / canvas.width;
-    const imgData = canvas.toDataURL('image/png');
-
-    let heightLeft = imgHeightMM;
-    let position = M.top; // ตำแหน่ง y เริ่มต้น = เว้นระยะขอบบน
-    pdf.addImage(imgData,'PNG',M.left,position,imgWidthMM,imgHeightMM);
-    maskMargins(pdf,PAGE_MM,M);
-    heightLeft -= CONTENT_H_MM;
-    while(heightLeft > 0){
-      position = M.top - (imgHeightMM - heightLeft);
-      pdf.addPage();
-      pdf.addImage(imgData,'PNG',M.left,position,imgWidthMM,imgHeightMM);
-      maskMargins(pdf,PAGE_MM,M);
-      heightLeft -= CONTENT_H_MM;
+    const ctx = {
+      M, PAGE_MM, CONTENT_W_MM, CONTENT_H_MM, scale:2, gapMM:4, cursorY:M.top,
+      mmPerPx: CONTENT_W_MM/renderWidthPx,        // px(CSS) -> mm คงที่ทั้งเอกสาร เพราะเรนเดอร์ที่ความกว้างคงที่นี้
+      containerRect: el.getBoundingClientRect()   // จุดอ้างอิงซ้ายบนของคอนเทนเนอร์ สำหรับคำนวณตำแหน่ง x ของบล็อกที่ซ้อนอยู่ลึก (เช่น ตารางในการ์ดที่มี padding)
+    };
+    for(const block of Array.from(el.children)){
+      await pdfLayoutNode(pdf, block, ctx);
     }
-
-    // เลขหน้ากำกับทุกหน้า ตามรูปแบบเอกสารราชการ
     const totalPages = pdf.internal.getNumberOfPages();
     for(let i=1;i<=totalPages;i++){
       pdf.setPage(i);
@@ -1883,7 +1966,6 @@ async function exportToPDF(containerId, filename){
       pdf.setTextColor(0,0,0);
       pdf.text(`หน้า ${i}/${totalPages}`, PAGE_MM.w/2, PAGE_MM.h - (M.bottom/2), {align:'center'});
     }
-
     pdf.save(filename);
   }catch(err){
     alertToast('สร้าง PDF ไม่สำเร็จ: '+err.message+' - กรุณาใช้ปุ่ม "พิมพ์รายงาน" แทน',5000);
@@ -1891,13 +1973,6 @@ async function exportToPDF(containerId, filename){
     el.classList.remove('pdf-doc');
     el.setAttribute('style',prevStyle);
   }
-}
-// ปิดทับส่วนเกินของภาพที่อาจล้นเข้าเขตระยะขอบ (บน/ล่าง/ขวา) ด้วยพื้นที่สีขาว ให้ระยะขอบสะอาดแน่นอนทุกหน้า
-function maskMargins(pdf,PAGE_MM,M){
-  pdf.setFillColor(255,255,255);
-  pdf.rect(0, 0, PAGE_MM.w, M.top, 'F');
-  pdf.rect(0, PAGE_MM.h-M.bottom, PAGE_MM.w, M.bottom, 'F');
-  pdf.rect(PAGE_MM.w-M.right, 0, M.right, PAGE_MM.h, 'F');
 }
 
 /* ============================= BACKUP UI WIRING ============================= */
