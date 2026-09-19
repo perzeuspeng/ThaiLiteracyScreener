@@ -1867,13 +1867,15 @@ function pdfCropCanvas(src, sx, sy, sw, sh){
 }
 async function pdfLayoutTable(pdf, table, ctx){
   const rect = table.getBoundingClientRect();
-  const widthMM = rect.width * ctx.mmPerPx;
-  const xMM = ctx.M.left + (rect.left - ctx.containerRect.left) * ctx.mmPerPx;
+  let widthMM = rect.width * ctx.mmPerPx;
+  let xMM = ctx.M.left + (rect.left - ctx.containerRect.left) * ctx.mmPerPx;
+  let shrink = 1;
+  if(widthMM > ctx.CONTENT_W_MM){ shrink = ctx.CONTENT_W_MM/widthMM; widthMM = ctx.CONTENT_W_MM; xMM = ctx.M.left; }
   const canvas = await html2canvas(table,{scale:ctx.scale,backgroundColor:'#ffffff',useCORS:true});
   const canvasScaleY = canvas.height / table.offsetHeight;
   const thead = table.querySelector('thead');
   const headerHeightPx = thead ? thead.offsetHeight : 0;
-  const headerHeightMM = headerHeightPx * ctx.mmPerPx;
+  const headerHeightMM = headerHeightPx * ctx.mmPerPx * shrink;
   const headerCanvas = headerHeightPx>0 ? pdfCropCanvas(canvas,0,0,canvas.width, headerHeightPx*canvasScaleY) : null;
 
   const placeHeader = ()=>{
@@ -1893,7 +1895,7 @@ async function pdfLayoutTable(pdf, table, ctx){
     let j = i, groupEndPx = groupStartPx;
     while(j < rows.length){
       const rowBottomPx = rows[j].offsetTop + rows[j].offsetHeight;
-      const candidateMM = (rowBottomPx - groupStartPx) * ctx.mmPerPx;
+      const candidateMM = (rowBottomPx - groupStartPx) * ctx.mmPerPx * shrink;
       const availableMM = ctx.CONTENT_H_MM - (ctx.cursorY - ctx.M.top);
       if(candidateMM > availableMM) break;
       groupEndPx = rowBottomPx; j++;
@@ -1914,7 +1916,7 @@ async function pdfLayoutTable(pdf, table, ctx){
     }
     const sy = groupStartPx*canvasScaleY, sh=(groupEndPx-groupStartPx)*canvasScaleY;
     const sliceCanvas = pdfCropCanvas(canvas,0,sy,canvas.width,sh);
-    const sliceHeightMM = (groupEndPx-groupStartPx)*ctx.mmPerPx;
+    const sliceHeightMM = (groupEndPx-groupStartPx)*ctx.mmPerPx*shrink;
     pdf.addImage(sliceCanvas.toDataURL('image/png'),'PNG', xMM, ctx.cursorY, widthMM, sliceHeightMM);
     ctx.cursorY += sliceHeightMM;
     i = j; groupStartPx = groupEndPx;
@@ -1924,9 +1926,10 @@ async function pdfLayoutTable(pdf, table, ctx){
 async function pdfLayoutNode(pdf, node, ctx){
   if(node.tagName==='TABLE'){ await pdfLayoutTable(pdf, node, ctx); return; }
   const rect = node.getBoundingClientRect();
-  const widthMM = rect.width * ctx.mmPerPx;
-  const heightMM = rect.height * ctx.mmPerPx;
-  const xMM = ctx.M.left + (rect.left - ctx.containerRect.left) * ctx.mmPerPx;
+  let widthMM = rect.width * ctx.mmPerPx;
+  let heightMM = rect.height * ctx.mmPerPx;
+  let xMM = ctx.M.left + (rect.left - ctx.containerRect.left) * ctx.mmPerPx;
+  if(widthMM > ctx.CONTENT_W_MM){ const shrink=ctx.CONTENT_W_MM/widthMM; widthMM=ctx.CONTENT_W_MM; heightMM*=shrink; xMM=ctx.M.left; }
   if(heightMM <= ctx.CONTENT_H_MM || node.children.length===0){
     const canvas = await html2canvas(node,{scale:ctx.scale,backgroundColor:'#ffffff',useCORS:true});
     pdfEnsureSpace(pdf, ctx, heightMM);
@@ -1965,6 +1968,7 @@ async function exportToPDF(containerId, filename){
   el.classList.add('pdf-doc');
   // วางไว้ในตำแหน่ง (0,0) ซึ่งยังอยู่ในวิวพอร์ตจริง แต่ถูกฉากทับด้านบนบังไว้มองไม่เห็น
   el.style.cssText = `display:block;position:fixed;left:0;top:0;width:${renderWidthPx}px;background:#fff;padding:0;z-index:99997;`;
+  if(document.fonts && document.fonts.ready){ try{ await document.fonts.ready; }catch(e){} } // กันฟอนต์ Sarabun โหลดไม่ทันจนขนาดตัวอักษรขยับระหว่างแคปเจอร์
   await new Promise(r=>setTimeout(r,150));
   el.offsetHeight; // บังคับให้เบราว์เซอร์คำนวณเลย์เอาต์ให้เสร็จก่อนเริ่มแคปเจอร์
   try{
