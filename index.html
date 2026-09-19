@@ -6,7 +6,6 @@
 <title>Thai Literacy Screener</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -126,69 +125,59 @@ tr:hover td{background:#f9fbfd;}
 .modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:16px;}
 .note{font-size:var(--fs-xs);color:var(--muted);background:#f4f6f9;border-radius:8px;padding:10px 12px;margin-top:10px;}
 canvas{max-width:100%;height:auto;}
-.printable{display:none;}
-@media print{
-  @page{size:A4;margin:25mm 20mm 20mm 30mm;} /* มาตรฐานระยะขอบเอกสารราชการ: บน 2.5 ซม. / ล่าง 2 ซม. / ซ้าย 3 ซม. / ขวา 2 ซม. */
-  .sidebar,.toolbar,.no-print,.nav-item,.topbar,.sidebar-backdrop{display:none !important;}
-  main{padding:0;max-width:100%;}
-  .app{display:block;}
-  .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid;}
-  body{background:#fff;}
-  .screen{display:none !important;}
-  .printable{display:block !important;}
-}
 /* =====================================================================
-   PDF PAGE ENGINE — CSS ของ "หน้ากระดาษ A4" ที่ใช้สร้างไฟล์ PDF (เขียนใหม่ทั้งหมด)
-   แยกอิสระจากหน้าจอ: ขาวดำล้วน, ตารางเส้นบางแบบเอกสารราชการ, ไม่พึ่งค่ากำหนดของหน้าจอ/มือถือ
-   ขนาดหน้า 794x1123px (= A4 ที่ 96dpi) เขตเนื้อหา 605px กว้าง = ขอบซ้าย 3 ซม. / ขวา 2 ซม. / บน 2.5 ซม. / ล่าง 2 ซม.
+   เอกสารสำหรับ "พิมพ์ / บันทึกเป็น PDF" — สร้างใหม่ทั้งหมด หน้าตาอิงจากรายงานที่แสดงบนหน้าจอ
+   (การ์ดขอบมน, หัวตารางฟ้าอ่อน, ช่องถูก=เขียว / ผิด=แดง / ยังไม่ทำ=เทา, ป้ายสีระดับ)
+   ทำงานผ่านเครื่องมือสร้าง PDF ของเบราว์เซอร์เอง จึงได้ตัวอักษรไทยคมชัดและเลือกคัดลอกได้
+   ครอบด้วย @media print ทั้งหมด: บนหน้าจอปกติไม่มีผลใดๆ
    ===================================================================== */
-.pdfx-overlay{position:fixed;inset:0;background:#fff;z-index:99998;display:flex;align-items:center;justify-content:center;font-family:'Sarabun',sans-serif;font-size:16px;color:#16224a;text-align:center;padding:20px;}
-.pdfx-stage{position:fixed;left:0;top:0;z-index:99997;background:#fff;}
-.pdfx-page{position:relative;width:794px;height:1123px;background:#fff;overflow:hidden;box-sizing:border-box;font-family:'Sarabun',sans-serif;font-size:15px;line-height:1.6;color:#000;}
-.pdfx-body{position:absolute;left:113px;top:94px;width:605px;display:flow-root;}
-.pdfx-foot{position:absolute;left:113px;width:605px;bottom:34px;text-align:center;font-size:12px;line-height:1.4;color:#000;}
-.pdfx-body,.pdfx-body *{box-sizing:border-box;color:#000 !important;text-shadow:none !important;box-shadow:none !important;border-radius:0 !important;}
-/* ระยะห่างระหว่างบล็อกคงที่ทั้งเอกสาร (ไม่มีช่องว่างสุ่ม) */
-.pdfx-body > *{margin:0 0 9px !important;}
-.pdfx-body > :last-child{margin-bottom:0 !important;}
-.pdfx-body > h3{font-size:17px;font-weight:700;line-height:1.5;margin:4px 0 6px !important;padding:0 0 4px;border-bottom:1px solid #000;display:flex;justify-content:space-between;align-items:center;gap:10px;}
-.pdfx-body > h3 > span:first-child{flex:1 1 auto;}
-.pdfx-body > :first-child{margin-top:0 !important;}
-.pdfx-body b{font-weight:700;}
-/* หัวรายงาน */
-.pdfx-body .print-header{text-align:center;border-bottom:2px solid #000;padding:0 0 8px;}
-.pdfx-body .print-header h2{font-size:20px;font-weight:700;line-height:1.45;margin:4px 0 !important;}
-.pdfx-body .print-header div{font-size:14px !important;}
-.pdfx-body .print-meta{display:flex;flex-wrap:wrap;gap:2px 22px;font-size:14px !important;}
-.pdfx-body .print-meta div{font-size:14px !important;}
-.pdfx-body .page-desc{font-size:14px !important;}
-/* ตาราง */
-.pdfx-body table{width:100%;border-collapse:collapse;font-size:14px !important;}
-.pdfx-body th,.pdfx-body td{border:1px solid #000 !important;padding:4px 7px !important;text-align:left;vertical-align:middle;line-height:1.5;font-size:14px;background:#fff !important;}
-.pdfx-body th{background:#e6e6e6 !important;font-weight:700;white-space:nowrap;}
-.pdfx-body .empty-state{padding:6px !important;text-align:center !important;}
-/* ตารางผลรายข้อ: ข้อเรียงแนวนอน, ผลถูก/ผิดอยู่แนวนอนใต้แต่ละข้อ */
-.pdfx-body .ans-table{table-layout:fixed;}
-.pdfx-body .ans-table th,.pdfx-body .ans-table td{text-align:center;padding:3px 1px !important;font-size:13px;white-space:nowrap;}
-.pdfx-body .ans-table .lbl{background:#e6e6e6 !important;font-weight:700;}
-.pdfx-body .ans-table .ans-pass{font-weight:400;}
-.pdfx-body .ans-table .ans-fail{font-weight:700;background:#cfcfcf !important;}
-.pdfx-body .ans-table .ans-untested{font-style:italic;}
-.pdfx-body .ans-table .pad{border:none !important;background:#fff !important;}
-/* ป้ายสถานะ: ขาวดำ ขอบเส้น */
-.pdfx-body .pill,.pdfx-body .badge{display:inline-block;background:#fff !important;border:1px solid #000 !important;padding:0 7px !important;font-size:13px !important;font-weight:700;line-height:1.45;white-space:nowrap;}
-.pdfx-body .group-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:5px 0;border-bottom:1px dashed #000;font-size:14px !important;}
-.pdfx-body .group-row > span:first-child{flex:1 1 auto;}
-.pdfx-body .note{border:1px solid #000;padding:8px 10px !important;font-size:13px !important;line-height:1.65;background:#fff !important;}
-/* กราฟ */
-.pdfx-body .pdfx-cap{font-size:14px;font-weight:700;margin:0 0 4px;}
-.pdfx-body .pdfx-donutrow{display:flex;align-items:center;gap:18px;}
-.pdfx-body .pdfx-donutrow .legend{display:flex;flex-direction:column;gap:5px;font-size:13px;margin:0;flex-wrap:nowrap;}
-.pdfx-body .legend span{display:flex;align-items:center;gap:6px;font-size:13px;}
-.pdfx-body .dot{width:11px;height:11px;border:1px solid #000;flex-shrink:0;display:inline-block;border-radius:50% !important;}
-.pdfx-body img{display:block;max-width:100%;}
-.pdfx-body .pdfx-cols{display:flex;gap:16px;}
-.pdfx-body .pdfx-cols > *{flex:1 1 0;min-width:0;}
+#pdocRoot{display:none;}
+@media print{
+  @page{
+    size:A4;margin:14mm 13mm 16mm 13mm;
+    @bottom-center{content:"หน้า " counter(page) " / " counter(pages);font-family:'Sarabun',sans-serif;font-size:9pt;color:#6b7386;}
+  }
+  html,body{height:auto !important;min-height:0 !important;overflow:visible !important;background:#fff !important;margin:0 !important;padding:0 !important;}
+  /* ซ่อนทุกอย่างในหน้าเว็บ (เมนู แถบล่าง กล่องแจ้งเตือน ฯลฯ) เหลือแต่เอกสารรายงาน */
+  body.pdoc-printing > *{display:none !important;}
+  body.pdoc-printing > #pdocRoot{display:block !important;}
+
+  #pdocRoot{font-family:'Sarabun',sans-serif;font-size:14px;line-height:1.55;color:var(--text);-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+  #pdocRoot,#pdocRoot *{box-sizing:border-box;}
+
+  /* การ์ด: เหมือนหน้าจอแต่ไม่มีเงา และไม่ตัดกลางการ์ดเล็ก (การ์ดที่มีตารางยาวมี .brk ให้ตัดตามแถวได้) */
+  #pdocRoot .card{background:#fff;border:1px solid #dbe1ee;border-radius:12px;padding:10px 14px;margin:0 0 9px;box-shadow:none;overflow:visible;break-inside:avoid;}
+  #pdocRoot .card.brk{break-inside:auto;}
+  #pdocRoot .card h3{margin:0 0 8px;font-size:15px;color:var(--navy);border-bottom:2px solid #e6eaf3;padding-bottom:5px;}
+  #pdocRoot h2,#pdocRoot h3{break-after:avoid;}
+  #pdocRoot .page-desc{break-after:avoid;margin-bottom:10px;}
+  #pdocRoot .print-header,#pdocRoot .print-meta{break-inside:avoid;}
+  #pdocRoot .note{break-inside:avoid;margin-bottom:12px;}
+  #pdocRoot .group-row{break-inside:avoid;}
+
+  /* ตาราง: เส้นแถวบางแบบหน้าจอ, หัวตารางซ้ำทุกหน้า, ไม่ตัดกลางแถว */
+  #pdocRoot table{width:100%;border-collapse:collapse;font-size:13px;}
+  #pdocRoot th,#pdocRoot td{padding:6px 8px;text-align:left;border-bottom:1px solid #e2e7f2;vertical-align:middle;}
+  #pdocRoot th{background:#eef2f7;color:var(--navy-dark);font-weight:700;font-size:12.5px;}
+  #pdocRoot thead{display:table-header-group;}
+  #pdocRoot tr{break-inside:avoid;}
+  #pdocRoot .empty-state{padding:10px !important;}
+
+  /* ตารางผลรายข้อ: ข้อเรียงแนวนอน ผลถูก/ผิดอยู่แนวนอนใต้แต่ละข้อ (ความกว้างคงที่ ไม่ล้นหน้า) */
+  #pdocRoot .ans-table{table-layout:fixed;text-align:center;break-inside:avoid;}
+  #pdocRoot .ans-table th,#pdocRoot .ans-table td{border:1px solid #dbe1ee;padding:4px 1px;text-align:center;white-space:nowrap;font-size:12.5px;}
+  #pdocRoot .ans-table th:first-child,#pdocRoot .ans-table td:first-child{text-align:left;padding-left:8px;font-weight:700;background:#f4f6f9;}
+  #pdocRoot .ans-table .pad{border:none;background:#fff !important;}
+
+  /* กราฟ */
+  #pdocRoot .pdoc-fig{break-inside:avoid;margin:0 0 14px;}
+  #pdocRoot .pdoc-cap{font-weight:700;color:var(--navy);font-size:14px;margin:0 0 4px;}
+  #pdocRoot .pdoc-donutrow{display:flex;align-items:center;gap:24px;}
+  #pdocRoot .pdoc-donutrow .legend{flex-direction:column;flex-wrap:nowrap;gap:6px;font-size:13px;margin:0;}
+  #pdocRoot canvas{display:block;max-width:100%;}
+  #pdocRoot .grid{display:flex;gap:12px;}
+  #pdocRoot .grid > *{flex:1 1 0;min-width:0;}
+}
 .print-header{text-align:center;margin-bottom:18px;border-bottom:2px solid var(--navy);padding-bottom:10px;}
 .print-header h2{margin:4px 0;color:var(--navy-dark);}
 .print-meta{display:flex;justify-content:space-between;font-size:var(--fs-sm);margin-bottom:14px;flex-wrap:wrap;gap:6px;}
@@ -515,7 +504,6 @@ canvas{max-width:100%;height:auto;}
     </div>
 
     <!-- PRINT AREA (shared) -->
-    <div class="printable" id="printArea"></div>
   </main>
 </div>
 
@@ -1347,7 +1335,7 @@ function renderAssessArea(){
 /* ============================= CHARTS (canvas) ============================= */
 function drawDonut(canvas,segments,legendEl,mono){
   const ctx=canvas.getContext('2d'); const k=+canvas.dataset.k||1; const w=canvas.width/k,h=canvas.height/k;
-  ctx.setTransform(k,0,0,k,0,0); // k=2 => วาดละเอียดสองเท่าสำหรับ PDF (หน้าจอปกติ k=1)
+  ctx.setTransform(k,0,0,k,0,0); // k=2 => วาดละเอียดสองเท่าสำหรับพิมพ์ (หน้าจอปกติ k=1)
   ctx.clearRect(0,0,w,h);
   const total=segments.reduce((a,s)=>a+s.value,0);
   const cx=w*0.35, cy=h/2, r=Math.min(cx,cy)-10, rw=28;
@@ -1381,7 +1369,7 @@ function drawBarChart(canvas,labels,values,opts){
   const ctx=canvas.getContext('2d'); const k=+canvas.dataset.k||1; const w=canvas.width/k,h=canvas.height/k;
   ctx.setTransform(k,0,0,k,0,0);
   ctx.clearRect(0,0,w,h);
-  const padL=36,padT=16,padR=12; const padB = opts.padB || ((mono && !labels.some(l=>String(l).length>6)) ? 36 : 70);
+  const padL=36,padT=16,padR=12; const padB = (canvas.dataset.k && !labels.some(l=>String(l).length>6)) ? 36 : 70;
   const chartW=w-padL-padR, chartH=h-padT-padB;
   const max=opts.max||100;
   const n=labels.length;
@@ -1486,16 +1474,12 @@ function renderReportStudentSelectors(){
   document.getElementById('reportStudentRoundSelect').onchange=renderReportStudentArea;
   renderReportStudentArea();
 }
-function topicAnswerTableHTML(sid,topic,round,forPdf){
+function topicAnswerTableHTML(sid,topic,round,forPrint){
   const tres = getResult(sid,round)[topic.no] || {};
   if(topic.type==='reading'){
     const v = tres.reading;
     const mark = v===undefined?'ยังไม่ทำ':v?'ถูก':'ผิด';
     const cls = v===undefined?'ans-untested':v?'ans-pass':'ans-fail';
-    if(forPdf) return `<table class="ans-table"><colgroup><col style="width:20%"><col style="width:80%"></colgroup>
-      <thead><tr><th class="lbl">ข้อที่</th><th>การอ่านแบ่งวรรคตอน</th></tr></thead>
-      <tbody><tr><td class="lbl">ผล</td><td class="${cls}">${mark}</td></tr></tbody>
-    </table>`;
     return `<table class="ans-table">
       <thead><tr><th>หน่วยที่ ${topic.no}</th><th>การอ่านแบ่งวรรคตอน</th></tr></thead>
       <tbody><tr><td>คำตอบ</td><td class="${cls}">${mark}</td></tr></tbody>
@@ -1503,21 +1487,21 @@ function topicAnswerTableHTML(sid,topic,round,forPdf){
   }
   let items=[];
   topic.sections.forEach(sec=>{ sec.items.forEach(it=>items.push(it)); });
-  if(forPdf){
-    // PDF: เรียงข้อในแนวนอน แถวละไม่เกิน 8 ข้อ (ถ้ามีมากกว่านั้นแบ่งเป็นหลายแถวเท่าๆ กัน) และผลถูก/ผิดอยู่แนวนอนใต้แต่ละข้อ
-    // ใช้ตารางความกว้างคงที่ (table-layout:fixed) จึงไม่มีทางล้นหน้า/ถูกย่อจนตัวเล็ก
+  if(forPrint){
+    // เหมือนหน้าจอ: หัวตาราง "หน่วยที่ N | ข้อที่ 1..n" และแถว "คำตอบ | ถูก/ผิด ..." แต่แบ่งเป็นแถวละไม่เกิน 10 ข้อ
+    // (ถ้ามีมากกว่านั้นแบ่งเท่าๆ กัน) และใช้ความกว้างคงที่ จึงไม่ล้นหน้า A4 และไม่มีทางที่ผลถูก/ผิดจะเรียงลงแนวตั้ง
     const markOf = v => v===undefined?'ยังไม่ทำ':v?'ถูก':'ผิด';
     const clsOf = v => v===undefined?'ans-untested':v?'ans-pass':'ans-fail';
-    const n=items.length, PER=8, groups=Math.max(1,Math.ceil(n/PER)), size=Math.ceil(n/groups);
-    const lblW=14, cellW=((100-lblW)/size).toFixed(3);
+    const n=items.length, PER=10, groups=Math.max(1,Math.ceil(n/PER)), size=Math.ceil(n/groups);
+    const lblW=13, cellW=((100-lblW)/size).toFixed(3);
     const cols=`<col style="width:${lblW}%">`+Array.from({length:size},()=>`<col style="width:${cellW}%">`).join('');
     let rowsHtml='';
     for(let g=0;g<groups;g++){
       const from=g*size, to=Math.min(n,from+size);
-      let h='<tr><th class="lbl">ข้อที่</th>', b='<tr><td class="lbl">ผล</td>';
+      let h=`<tr><th>หน่วยที่ ${topic.no}</th>`, b='<tr><td>คำตอบ</td>';
       for(let c=0;c<size;c++){
         const idx=from+c;
-        if(idx<to){ const v=tres[idx]; h+=`<th>${idx+1}</th>`; b+=`<td class="${clsOf(v)}">${markOf(v)}</td>`; }
+        if(idx<to){ const v=tres[idx]; h+=`<th>ข้อที่ ${idx+1}</th>`; b+=`<td class="${clsOf(v)}">${markOf(v)}</td>`; }
         else{ h+='<th class="pad"></th>'; b+='<td class="pad"></td>'; }
       }
       rowsHtml+=h+'</tr>'+b+'</tr>';
@@ -1536,7 +1520,7 @@ function topicAnswerTableHTML(sid,topic,round,forPdf){
     <tbody><tr><td>คำตอบ</td>${bodyCells}</tr></tbody>
   </table>`;
 }
-function itemDetailSectionHTML(sid,round,forPdf){
+function itemDetailSectionHTML(sid,round,forPrint){
   return TOPICS.map(t=>{
     const st=topicStatus(sid,t,round);
     if(st.status==='untested') return ''; // skip topics not started at all, to keep report focused
@@ -1547,11 +1531,11 @@ function itemDetailSectionHTML(sid,round,forPdf){
       <h3 style="margin-top:0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
         <span>ชุดที่ ${t.no} · ${t.name}</span> ${pill}
       </h3>
-      ${topicAnswerTableHTML(sid,t,round,forPdf)}
+      ${topicAnswerTableHTML(sid,t,round,forPrint)}
     </div>`;
   }).join('');
 }
-function reportStudentHTML(sid,round,forPdf){
+function reportStudentHTML(sid,round,forPrint){
   const s=DATA.students.find(x=>x.id===sid); if(!s) return '';
   const ev=evaluateStudent(sid,round);
   let rows='';
@@ -1597,8 +1581,8 @@ function reportStudentHTML(sid,round,forPdf){
     <tbody>${rows}</tbody></table>
     <div class="note">หมายเหตุ: ทักษะจะ "ผ่านเกณฑ์" ต่อเมื่อนักเรียนตอบถูกทุกข้อในทักษะนั้น ตามหลักเกณฑ์ของชุดกรองก่อนฝึก หากตอบผิดแม้เพียงข้อเดียวในกลุ่มกิจกรรมใด ครูควรฝึกกิจกรรมนั้นเพิ่มเติมจนนักเรียนทำได้ถูกต้องทั้งหมด ทักษะทั้ง 13 ชุดถูกจัดกลุ่มเป็น 4 ระดับการเรียนรู้ (ระดับที่ 1: ชุด 1-4, ระดับที่ 2: ชุด 5-8, ระดับที่ 3: ชุด 9-11, ระดับที่ 4: ชุด 12-13) โดยระดับที่ต้องซ่อมเสริมคือระดับที่ต่ำที่สุดที่นักเรียนยังไม่ผ่านเกณฑ์ เนื่องจากทักษะพื้นฐานในระดับต้นเป็นรากฐานของทักษะระดับถัดไป</div>
     ${(()=>{
-      const detail = itemDetailSectionHTML(sid,round,forPdf);
-      if(forPdf && !detail.trim()) return '';
+      const detail = itemDetailSectionHTML(sid,round,forPrint);
+      if(forPrint && !detail.trim()) return ''; // ไม่มีทักษะที่เริ่มประเมินเลย: ไม่พิมพ์หัวข้อลอยๆ
       return `<h3 style="color:var(--navy);margin-top:22px;">รายละเอียดผลการทำแบบทดสอบรายข้อ</h3>
     <div class="page-desc" style="margin-bottom:12px;">แสดงเฉพาะทักษะที่เริ่มประเมินแล้ว โดยระบุว่าแต่ละข้อนักเรียนตอบ<b>ถูก</b>หรือ<b>ผิด</b> (หรือยังไม่ได้ทำ)</div>
     ${detail}`;
@@ -1648,22 +1632,17 @@ function renderReportStudentArea(){
   const html = round==='compare'? reportStudentCompareHTML(sid) : reportStudentHTML(sid,round);
   area.innerHTML=`<div class="card">${html}</div>`;
 }
-document.getElementById('printStudentBtn').addEventListener('click',()=>{
+async function doStudentReport(asPdf){
   const sid=document.getElementById('reportStudentSelect').value;
   const round=document.getElementById('reportStudentRoundSelect').value||'pre';
-  if(!sid){ alertToast('กรุณาเลือกนักเรียนก่อนพิมพ์'); return; }
-  document.getElementById('printArea').innerHTML = round==='compare'? reportStudentCompareHTML(sid) : reportStudentHTML(sid,round);
-  window.print();
-});
-document.getElementById('pdfStudentBtn').addEventListener('click',async ()=>{
-  const sid=document.getElementById('reportStudentSelect').value;
-  const round=document.getElementById('reportStudentRoundSelect').value||'pre';
-  if(!sid){ alertToast('กรุณาเลือกนักเรียนก่อนส่งออก'); return; }
+  if(!sid){ alertToast(asPdf?'กรุณาเลือกนักเรียนก่อนส่งออก':'กรุณาเลือกนักเรียนก่อนพิมพ์'); return; }
   const s=DATA.students.find(x=>x.id===sid);
   const html = round==='compare'? reportStudentCompareHTML(sid) : reportStudentHTML(sid,round,true);
   const roundSuffix = round==='compare'? 'เปรียบเทียบ' : (round==='post'?'หลังเรียน':'ก่อนเรียน');
-  await exportToPDF(html, `รายงานรายบุคคล-${(s&&s.name)||'นักเรียน'}-${roundSuffix}.pdf`);
-});
+  await printReport(html, `รายงานรายบุคคล-${(s&&s.name)||'นักเรียน'}-${roundSuffix}.pdf`, null, asPdf?PDF_HINT:null);
+}
+document.getElementById('printStudentBtn').addEventListener('click',()=>doStudentReport(false));
+document.getElementById('pdfStudentBtn').addEventListener('click',()=>doStudentReport(true));
 
 /* ============================= REPORT: CLASS ============================= */
 function renderReportClassSelectors(){
@@ -1672,7 +1651,7 @@ function renderReportClassSelectors(){
   document.getElementById('reportClassRoundSelect').onchange=renderReportClassArea;
   renderReportClassArea();
 }
-function reportClassHTML(cid,round,forPdf){
+function reportClassHTML(cid,round,forPrint){
   const cls=DATA.classes.find(c=>c.id===cid); if(!cls) return '';
   const students=studentsInClass(cid).sort((a,b)=>(Number(a.number)-Number(b.number))||a.name.localeCompare(b.name));
   let rows=''; let sumPassed=0, resolvedCount=0;
@@ -1696,11 +1675,11 @@ function reportClassHTML(cid,round,forPdf){
       <div><b>เฉลี่ยทักษะที่ผ่าน:</b> ${avgPassed}/13</div>
       <div><b>วันที่พิมพ์รายงาน:</b> ${new Date().toLocaleDateString('th-TH')}</div>
     </div>
-    ${forPdf ? `
-    <div class="pdfx-fig"><div class="pdfx-cap">สัดส่วนนักเรียนตามระดับที่ต้องซ่อมเสริม</div>
-      <div class="pdfx-donutrow"><canvas id="classDonut_${cid}" width="660" height="460" data-k="2"></canvas><div class="legend" id="classDonutLegend_${cid}"></div></div></div>
-    <div class="pdfx-fig"><div class="pdfx-cap">อัตราผ่านรายทักษะของนักเรียนในชั้น (ร้อยละ)</div>
-      <canvas id="classBar_${cid}" width="1210" height="500" data-k="2"></canvas></div>` : `
+    ${forPrint ? `
+    <div class="pdoc-fig"><div class="pdoc-cap">สัดส่วนนักเรียนตามระดับที่ต้องซ่อมเสริม</div>
+      <div class="pdoc-donutrow"><canvas id="classDonut_${cid}" width="660" height="460" data-k="2" style="width:330px"></canvas><div class="legend" id="classDonutLegend_${cid}"></div></div></div>
+    <div class="pdoc-fig"><div class="pdoc-cap">อัตราผ่านรายทักษะของนักเรียนในชั้น (ร้อยละ)</div>
+      <canvas id="classBar_${cid}" width="1300" height="500" data-k="2" style="width:650px"></canvas></div>` : `
     <div class="grid grid-2" style="margin-bottom:16px;">
       <div><canvas id="classDonut_${cid}" width="330" height="230"></canvas><div class="legend" id="classDonutLegend_${cid}"></div></div>
       <div><canvas id="classBar_${cid}" width="380" height="230"></canvas></div>
@@ -1709,7 +1688,7 @@ function reportClassHTML(cid,round,forPdf){
     <tbody>${rows||'<tr><td colspan="4" class="empty-state">ไม่มีนักเรียนในชั้นนี้</td></tr>'}</tbody></table>
   `;
 }
-// root = กล่องที่ต้องการวาดกราฟลงไป (สำคัญ: หน้าจอกับพื้นที่พิมพ์/PDF ใช้ id ซ้ำกัน ถ้าไม่ระบุ root จะวาดผิดกล่อง แล้วกราฟใน PDF ว่างเปล่า)
+// root = กล่องที่ต้องการวาดกราฟลงไป (สำคัญ: หน้าจอกับเอกสารพิมพ์ใช้ id ซ้ำกัน ถ้าไม่ระบุ root จะวาดผิดกล่อง แล้วกราฟในรายงานที่พิมพ์ว่างเปล่า)
 function drawClassCharts(cid,round,mono,root){
   root = root || document;
   const students=studentsInClass(cid);
@@ -1732,24 +1711,19 @@ function renderReportClassArea(){
   area.innerHTML=`<div class="card">${reportClassHTML(cid,round)}</div>`;
   setTimeout(()=>drawClassCharts(cid,round,false,area),0);
 }
-document.getElementById('printClassBtn').addEventListener('click',()=>{
+async function doClassReport(asPdf){
   const cid=document.getElementById('reportClassSelect').value;
   const round=document.getElementById('reportClassRoundSelect').value||'pre';
-  if(!cid){ alertToast('กรุณาเลือกชั้นเรียนก่อนพิมพ์'); return; }
-  const pa=document.getElementById('printArea');
-  pa.innerHTML=reportClassHTML(cid,round);
-  setTimeout(()=>{ drawClassCharts(cid,round,false,pa); window.print(); },50);
-});
-document.getElementById('pdfClassBtn').addEventListener('click',async ()=>{
-  const cid=document.getElementById('reportClassSelect').value;
-  const round=document.getElementById('reportClassRoundSelect').value||'pre';
-  if(!cid){ alertToast('กรุณาเลือกชั้นเรียนก่อนส่งออก'); return; }
+  if(!cid){ alertToast(asPdf?'กรุณาเลือกชั้นเรียนก่อนส่งออก':'กรุณาเลือกชั้นเรียนก่อนพิมพ์'); return; }
   const cls=DATA.classes.find(c=>c.id===cid);
-  await exportToPDF(reportClassHTML(cid,round,true), `รายงานรายชั้น-${(cls&&cls.name)||'ชั้นเรียน'}-${round==='post'?'หลังเรียน':'ก่อนเรียน'}.pdf`, root=>drawClassCharts(cid,round,true,root));
-});
+  await printReport(reportClassHTML(cid,round,true), `รายงานรายชั้น-${(cls&&cls.name)||'ชั้นเรียน'}-${round==='post'?'หลังเรียน':'ก่อนเรียน'}.pdf`,
+    root=>drawClassCharts(cid,round,false,root), asPdf?PDF_HINT:null);
+}
+document.getElementById('printClassBtn').addEventListener('click',()=>doClassReport(false));
+document.getElementById('pdfClassBtn').addEventListener('click',()=>doClassReport(true));
 
 /* ============================= REPORT: SCHOOL ============================= */
-function reportSchoolHTML(round,forPdf){
+function reportSchoolHTML(round,forPrint){
   let rows='';
   DATA.classes.forEach(c=>{
     const students=studentsInClass(c.id);
@@ -1770,11 +1744,11 @@ function reportSchoolHTML(round,forPdf){
       <div><b>จำนวนนักเรียนทั้งหมด:</b> ${allStudents.length} คน</div>
       <div><b>วันที่พิมพ์รายงาน:</b> ${new Date().toLocaleDateString('th-TH')}</div>
     </div>
-    ${forPdf ? `
-    <div class="pdfx-fig"><div class="pdfx-cap">สัดส่วนนักเรียนตามระดับที่ต้องซ่อมเสริม (ทั้งโรงเรียน)</div>
-      <div class="pdfx-donutrow"><canvas id="schoolDonut" width="660" height="460" data-k="2"></canvas><div class="legend" id="schoolDonutLegend"></div></div></div>
-    <div class="pdfx-fig"><div class="pdfx-cap">ค่าเฉลี่ยทักษะที่ผ่านของแต่ละชั้นเรียน (ร้อยละ)</div>
-      <canvas id="schoolClassBar" width="1210" height="480" data-k="2"></canvas></div>` : `
+    ${forPrint ? `
+    <div class="pdoc-fig"><div class="pdoc-cap">สัดส่วนนักเรียนตามระดับที่ต้องซ่อมเสริม (ทั้งโรงเรียน)</div>
+      <div class="pdoc-donutrow"><canvas id="schoolDonut" width="660" height="460" data-k="2" style="width:330px"></canvas><div class="legend" id="schoolDonutLegend"></div></div></div>
+    <div class="pdoc-fig"><div class="pdoc-cap">ค่าเฉลี่ยทักษะที่ผ่านของแต่ละชั้นเรียน (ร้อยละ)</div>
+      <canvas id="schoolClassBar" width="1300" height="480" data-k="2" style="width:650px"></canvas></div>` : `
     <div class="grid grid-2" style="margin-bottom:16px;">
       <div><canvas id="schoolDonut" width="330" height="230"></canvas><div class="legend" id="schoolDonutLegend"></div></div>
       <div><canvas id="schoolClassBar" width="380" height="230"></canvas></div>
@@ -1783,7 +1757,7 @@ function reportSchoolHTML(round,forPdf){
     <table><thead><tr><th>ชั้นเรียน</th><th>จำนวนนักเรียน</th><th>สรุปผลได้แล้ว</th><th>เฉลี่ยทักษะที่ผ่าน</th></tr></thead>
     <tbody>${rows||'<tr><td colspan="4" class="empty-state">ยังไม่มีชั้นเรียน</td></tr>'}</tbody></table>
     <h3 style="color:var(--navy);font-size:var(--fs-md);margin-top:18px;">อัตราผ่านรายทักษะ (ทั้งโรงเรียน)</h3>
-    ${forPdf ? '<canvas id="schoolTopicBar" width="1210" height="560" data-k="2"></canvas>' : '<canvas id="schoolTopicBar" width="760" height="260"></canvas>'}
+    ${forPrint ? '<div class="pdoc-fig"><canvas id="schoolTopicBar" width="1300" height="600" data-k="2" style="width:650px"></canvas></div>' : '<canvas id="schoolTopicBar" width="760" height="260"></canvas>'}
   `;
 }
 function drawSchoolCharts(round,mono,root){
@@ -1814,17 +1788,14 @@ function renderReportSchool(){
   setTimeout(()=>drawSchoolCharts(round,false,area),0);
 }
 document.getElementById('reportSchoolRoundSelect').addEventListener('change',renderReportSchool);
-document.getElementById('printSchoolBtn').addEventListener('click',()=>{
-  const round=document.getElementById('reportSchoolRoundSelect').value||'pre';
-  const pa=document.getElementById('printArea');
-  pa.innerHTML=reportSchoolHTML(round);
-  setTimeout(()=>{ drawSchoolCharts(round,false,pa); window.print(); },50);
-});
-document.getElementById('pdfSchoolBtn').addEventListener('click',async ()=>{
+async function doSchoolReport(asPdf){
   const round=document.getElementById('reportSchoolRoundSelect').value||'pre';
   const dateStr=new Date().toISOString().slice(0,10);
-  await exportToPDF(reportSchoolHTML(round,true), `รายงานภาพรวมโรงเรียน-${round==='post'?'หลังเรียน':'ก่อนเรียน'}-${dateStr}.pdf`, root=>drawSchoolCharts(round,true,root));
-});
+  await printReport(reportSchoolHTML(round,true), `รายงานภาพรวมโรงเรียน-${round==='post'?'หลังเรียน':'ก่อนเรียน'}-${dateStr}.pdf`,
+    root=>drawSchoolCharts(round,false,root), asPdf?PDF_HINT:null);
+}
+document.getElementById('printSchoolBtn').addEventListener('click',()=>doSchoolReport(false));
+document.getElementById('pdfSchoolBtn').addEventListener('click',()=>doSchoolReport(true));
 
 /* ============================= REPORT: REMEDIAL GROUPS ============================= */
 function reportRemedialHTML(round,classFilter){
@@ -1886,294 +1857,67 @@ function renderReportRemedialArea(){
   const classFilter=document.getElementById('reportRemedialClassFilter').value;
   document.getElementById('reportRemedialArea').innerHTML=reportRemedialHTML(round,classFilter);
 }
-document.getElementById('printRemedialBtn').addEventListener('click',()=>{
-  const round=document.getElementById('reportRemedialRoundSelect').value||'pre';
-  const classFilter=document.getElementById('reportRemedialClassFilter').value;
-  document.getElementById('printArea').innerHTML=reportRemedialHTML(round,classFilter);
-  window.print();
-});
-document.getElementById('pdfRemedialBtn').addEventListener('click',async ()=>{
+async function doRemedialReport(asPdf){
   const round=document.getElementById('reportRemedialRoundSelect').value||'pre';
   const classFilter=document.getElementById('reportRemedialClassFilter').value;
   const dateStr=new Date().toISOString().slice(0,10);
-  await exportToPDF(reportRemedialHTML(round,classFilter), `รายงานกลุ่มซ่อมเสริม-${round==='post'?'หลังเรียน':'ก่อนเรียน'}-${dateStr}.pdf`);
-});
+  await printReport(reportRemedialHTML(round,classFilter), `รายงานกลุ่มซ่อมเสริม-${round==='post'?'หลังเรียน':'ก่อนเรียน'}-${dateStr}.pdf`, null, asPdf?PDF_HINT:null);
+}
+document.getElementById('printRemedialBtn').addEventListener('click',()=>doRemedialReport(false));
+document.getElementById('pdfRemedialBtn').addEventListener('click',()=>doRemedialReport(true));
 
-/* ============================= PDF EXPORT ENGINE (เขียนใหม่ทั้งหมด) =============================
-   หลักการทำงาน — ทำแบบโปรแกรมจัดหน้าเอกสาร ไม่ใช่ "แคปทั้งรายงานแล้วหั่นเป็นชิ้น" อีกต่อไป
-   1) แปลงรายงานเป็นบล็อกเรียงตามลำดับ (หัวรายงาน / ตาราง / กราฟ / หมายเหตุ ...)
-   2) วางบล็อกลงในหน้ากระดาษ A4 จริง (ระยะขอบราชการ) ทีละบล็อก โดย "วัดความสูงจริง" ก่อนวางทุกครั้ง
-      - ขึ้นหน้าใหม่ก็ต่อเมื่อหน้าปัจจุบันมีเนื้อหาแล้วและบล็อกถัดไปไม่พอเท่านั้น => ไม่มีทางเกิดหน้ากระดาษเปล่า
-      - ตารางยาวแบ่งหน้าเฉพาะ "ระหว่างแถว" และพิมพ์หัวตารางซ้ำทุกหน้า
-      - หัวข้อต้องอยู่หน้าเดียวกับเนื้อหาถัดไปเสมอ (ไม่ทิ้งหัวข้อลอยท้ายหน้า)
-      - เนื้อหาไหลต่อเนื่อง ไม่มีช่องว่างขาวที่เกิดจากการเว้นทั้งบล็อกไว้ท้ายหน้า
-   3) แคปเจอร์ "ทีละหน้า" (1 หน้า = 1 ภาพเต็ม A4) แล้วประกอบเป็นไฟล์ PDF ด้วยตัวเขียน PDF ในไฟล์นี้เอง
-      ไม่พึ่ง jsPDF (jsPDF.text แสดงภาษาไทยไม่ได้) เลขหน้าจึงเขียนเป็น HTML อยู่ในหน้ากระดาษ */
-const PDFX = {
-  PAGE_W:794, PAGE_H:1123,            // A4 ที่ 96dpi
-  BODY_H:947,                          // ความสูงเขตเนื้อหาที่ใช้จริง (ขอบบน 2.5 ซม. / ล่าง 2 ซม. และเผื่อ 6px กันคลาดเคลื่อน)
-  SCALE:2, JPEG_Q:0.92,
-  busy:false
-};
-const pdfxTick = ms => new Promise(r=>setTimeout(r,ms));
+/* ============================= พิมพ์ / บันทึกเป็น PDF (เขียนใหม่ทั้งหมด) =============================
+   เลิกใช้วิธี "แคปภาพหน้าจอแล้วหั่นใส่ jsPDF" ซึ่งเป็นต้นเหตุของตารางเพี้ยน ช่องว่างขาว และหน้าเปล่า
+   วิธีใหม่: สร้างเอกสารรายงานในหน้าเว็บ (#pdocRoot) ด้วยหน้าตาเดียวกับหน้าจอ แล้วให้เบราว์เซอร์สร้าง PDF เอง
+   - ตัวอักษรไทยเป็นเวกเตอร์ คมชัด เลือกคัดลอกได้ ไฟล์เล็ก
+   - เบราว์เซอร์จัดหน้า A4 ให้เอง: ตัดหน้าระหว่างแถวตาราง, หัวตารางซ้ำทุกหน้า, หัวข้อไม่ค้างท้ายหน้า, เลขหน้าอัตโนมัติ
+   - ชื่อไฟล์ที่เสนอตอนบันทึกมาจาก document.title จึงตั้งเป็นชื่อรายงานให้ */
+const PDOC = { title:null, busy:false };
 
-async function pdfxLoadFonts(){
-  // โหลดฟอนต์ Sarabun ให้ครบก่อนวัดความสูง/วาดกราฟ ไม่งั้นตัวอักษรจะขยับหลังวัดเสร็จ
+async function pdocLoadFonts(){
+  // โหลดฟอนต์ Sarabun ให้ครบก่อนวาดกราฟ/พิมพ์ ไม่งั้นตัวอักษรในกราฟและการตัดหน้าจะคลาดเคลื่อน
   try{
     if(document.fonts && document.fonts.load){
-      await Promise.all(['400','700'].map(w=>document.fonts.load(w+' 16px Sarabun','กขค ก้ ABC abc 123')));
+      await Promise.all(['400','600','700','800'].map(w=>document.fonts.load(w+' 16px Sarabun','กขค ก้ ABC abc 123')));
       if(document.fonts.ready) await document.fonts.ready;
     }
   }catch(e){}
 }
-
-/* ---------- 1) เตรียมเนื้อหา: จัดรายงานให้เป็นบล็อกที่วางลงหน้ากระดาษได้ ---------- */
-function pdfxNormalize(src){
-  // กริด 2 คอลัมน์ของหน้าจอ -> แถวคอลัมน์แบบคงที่ (ไม่ขึ้นกับความกว้างจอมือถือ)
-  src.querySelectorAll('.grid').forEach(g=>{ g.className='pdfx-cols'; g.removeAttribute('style'); });
-  // ถอดกรอบการ์ดของหน้าจอออก เหลือหัวข้อ + เนื้อหาเป็นบล็อกอิสระ (ตัดข้ามหน้าได้ตามแถว)
-  src.querySelectorAll('.card').forEach(card=>{
-    while(card.firstChild) card.parentNode.insertBefore(card.firstChild, card);
-    card.remove();
-  });
-  // กราฟ canvas -> รูปภาพ (ใช้ขนาดตามที่วาดจริง ความละเอียดสูง)
-  src.querySelectorAll('canvas').forEach(cv=>{
-    const k = +cv.dataset.k || 1;
-    const img = document.createElement('img');
-    img.src = cv.toDataURL('image/png');
-    img.style.width = (cv.width/k)+'px';
-    img.style.height = (cv.height/k)+'px';
-    cv.replaceWith(img);
-  });
-  // ทิ้งบล็อกที่ว่างเปล่า (ต้นเหตุของช่องว่างขาว/หน้าเปล่า)
-  Array.from(src.children).forEach(el=>{
-    const hasContent = el.textContent.trim() || el.tagName==='IMG' || el.tagName==='TABLE' || el.querySelector('img,table,svg');
-    if(!hasContent) el.remove();
-  });
-  // หัวข้อต้องติดกับบล็อกถัดไป
-  let kids = Array.from(src.children);
-  kids.forEach((el,i)=>{
-    const isHead = /^H[1-6]$/.test(el.tagName);
-    if(isHead) el.classList.add('pdfx-keep');
-    if(el.classList.contains('page-desc') && i>0 && /^H[1-6]$/.test(kids[i-1].tagName)) el.classList.add('pdfx-keep');
-    if(el.classList.contains('ans-table')) el.classList.add('pdfx-atomic'); // ตารางผลรายข้อ: ห้ามตัดกลางตาราง
-  });
-  // แถวสรุประดับที่อยู่ติดกัน รวมเป็นบล็อกเดียว
-  kids = Array.from(src.children);
-  for(let i=0;i<kids.length;i++){
-    if(kids[i].classList.contains('group-row')){
-      const wrap = document.createElement('div'); wrap.className='pdfx-group';
-      kids[i].before(wrap);
-      while(i<kids.length && kids[i].classList.contains('group-row')){ wrap.appendChild(kids[i]); i++; }
-      i--;
-    }
-  }
+function pdocCleanup(){
+  document.body.classList.remove('pdoc-printing');
+  const r = document.getElementById('pdocRoot'); if(r) r.remove();
+  if(PDOC.title!==null){ document.title = PDOC.title; PDOC.title = null; }
 }
+window.addEventListener('afterprint', pdocCleanup);
 
-/* ---------- 2) จัดหน้า: วางบล็อกลงกระดาษ A4 พร้อมวัดความสูงจริง ---------- */
-function pdfxPaginate(src, stage){
-  const pages = [];
-  let page=null, body=null;
-  const fits = ()=> body.offsetHeight <= PDFX.BODY_H;
-  const isEmpty = ()=> body.children.length===0;
-  function newPage(){
-    page = document.createElement('div'); page.className='pdfx-page';
-    body = document.createElement('div'); body.className='pdfx-body';
-    page.appendChild(body); stage.appendChild(page); pages.push(page);
-  }
-  function tryAppend(node){
-    body.appendChild(node);
-    if(fits()) return true;
-    body.removeChild(node);
-    return false;
-  }
-  function placeAtomic(node){
-    if(tryAppend(node)) return;
-    if(!isEmpty()){ newPage(); if(tryAppend(node)) return; }
-    body.appendChild(node); // สูงกว่าหนึ่งหน้าเต็ม (ไม่ควรเกิดกับรายงานชุดนี้) วางทั้งก้อนไว้ก่อน
-    console.warn('pdfx: บล็อกสูงกว่าหนึ่งหน้า', node);
-  }
-  function placeTable(table){
-    if(tryAppend(table)) return;
-    const thead = table.tHead;
-    const rows = Array.from(table.querySelectorAll('tbody > tr'));
-    const total = rows.length;
-    const mk = ()=>{
-      const f = table.cloneNode(false);
-      if(thead) f.appendChild(thead.cloneNode(true));
-      const tb = document.createElement('tbody'); f.appendChild(tb);
-      return {f, tb, n:0};
-    };
-    const MIN = Math.min(2,total); // ไม่ทิ้งแถวเดียวโดดๆ ไว้ท้ายหน้า
-    let cur = mk(); body.appendChild(cur.f);
-    let i = 0;
-    while(i<total){
-      const r = rows[i];
-      cur.tb.appendChild(r);
-      if(fits()){ cur.n++; i++; continue; }
-      cur.tb.removeChild(r);
-      const firstOnPage = body.firstElementChild===cur.f;
-      if(firstOnPage && cur.n===0){ cur.tb.appendChild(r); cur.n++; i++; continue; } // แถวเดียวใหญ่กว่าทั้งหน้า จำใจวาง
-      if(cur.n<MIN && !firstOnPage){
-        // ย้ายทั้งชิ้น (หัวตาราง + แถวที่วางไปแล้ว) ไปหน้าใหม่ แล้วลองวางแถวเดิมอีกครั้ง
-        body.removeChild(cur.f); newPage(); body.appendChild(cur.f); continue;
-      }
-      // หน้านี้เต็มแล้ว: ขึ้นหน้าใหม่ พิมพ์หัวตารางซ้ำ แล้ววางแถวเดิมต่อ
-      newPage(); cur = mk(); body.appendChild(cur.f);
-    }
-  }
-  function placeNode(node){
-    if(node.tagName==='TABLE' && !node.classList.contains('pdfx-atomic')) placeTable(node);
-    else placeAtomic(node);
-  }
-  // ส่วนเล็กที่สุดของบล็อกที่ต้องอยู่หน้าเดียวกับหัวข้อ (ตาราง = หัวตาราง + 2 แถวแรก)
-  function minFragment(node){
-    if(node.tagName!=='TABLE' || node.classList.contains('pdfx-atomic')) return node;
-    const f = node.cloneNode(false);
-    if(node.tHead) f.appendChild(node.tHead.cloneNode(true));
-    const tb = document.createElement('tbody');
-    Array.from(node.querySelectorAll('tbody > tr')).slice(0,2).forEach(r=>tb.appendChild(r.cloneNode(true)));
-    f.appendChild(tb);
-    return f;
-  }
-  function fitsTogether(list){
-    list.forEach(n=>body.appendChild(n));
-    const ok = fits();
-    list.forEach(n=>n.remove());
-    return ok;
-  }
-
-  newPage();
-  const nodes = Array.from(src.children);
-  let i = 0;
-  while(i<nodes.length){
-    let j = i;
-    while(j<nodes.length-1 && nodes[j].classList.contains('pdfx-keep')) j++;
-    if(j>i && !isEmpty()){
-      // หัวข้อ (และคำอธิบายใต้หัวข้อ) + ส่วนแรกของบล็อกถัดไป ต้องอยู่หน้าเดียวกัน
-      const need = nodes.slice(i,j).concat([minFragment(nodes[j])]);
-      if(!fitsTogether(need)) newPage();
-    }
-    for(let k=i;k<=j;k++) placeNode(nodes[k]);
-    i = j+1;
-  }
-  // กันไว้ขั้นสุดท้าย: ห้ามมีหน้าเปล่าเหลืออยู่
-  const kept = pages.filter(p=>p.firstChild.children.length>0);
-  pages.forEach(p=>{ if(!kept.includes(p)) p.remove(); });
-  return kept;
-}
-function pdfxAddFooters(pages){
-  pages.forEach((p,i)=>{
-    const f = document.createElement('div'); f.className='pdfx-foot';
-    f.textContent = 'หน้า '+(i+1)+' / '+pages.length;
-    p.appendChild(f);
-  });
-}
-
-/* ---------- 3) ตัวเขียนไฟล์ PDF (1 หน้า = 1 ภาพ JPEG เต็ม A4) ---------- */
-function pdfxBuildFile(jpegs, title){
-  const enc = new TextEncoder();
-  const parts = []; let offset = 0; const offsets = [];
-  const push = d => { const u = (typeof d==='string') ? enc.encode(d) : d; parts.push(u); offset += u.length; };
-  const startObj = n => { offsets[n]=offset; push(n+' 0 obj\n'); };
-  const N = jpegs.length;
-  const W_PT = 595.28, H_PT = 841.89;
-  const utf16hex = s => { let h='FEFF'; for(let i=0;i<s.length;i++) h += s.charCodeAt(i).toString(16).padStart(4,'0'); return h; };
-  const d = new Date(); const p2 = x=>String(x).padStart(2,'0');
-  const cdate = 'D:'+d.getFullYear()+p2(d.getMonth()+1)+p2(d.getDate())+p2(d.getHours())+p2(d.getMinutes())+p2(d.getSeconds());
-
-  push('%PDF-1.4\n%\u00e2\u00e3\u00cf\u00d3\n');
-  startObj(1); push('<< /Type /Catalog /Pages 2 0 R >>\nendobj\n');
-  startObj(2);
-  push('<< /Type /Pages /Count '+N+' /Kids ['+jpegs.map((_,i)=>(4+i*3)+' 0 R').join(' ')+'] >>\nendobj\n');
-  startObj(3);
-  push('<< /Title <'+utf16hex(title||'รายงาน')+'> /Producer (Thai Literacy Screener) /CreationDate ('+cdate+') >>\nendobj\n');
-  jpegs.forEach((j,i)=>{
-    const pageN=4+i*3, contN=5+i*3, imgN=6+i*3;
-    startObj(pageN);
-    push('<< /Type /Page /Parent 2 0 R /MediaBox [0 0 '+W_PT+' '+H_PT+'] /Resources << /XObject << /Im0 '+imgN+' 0 R >> /ProcSet [/PDF /ImageC] >> /Contents '+contN+' 0 R >>\nendobj\n');
-    const content = 'q\n'+W_PT+' 0 0 '+H_PT+' 0 0 cm\n/Im0 Do\nQ\n';
-    startObj(contN);
-    push('<< /Length '+content.length+' >>\nstream\n'+content+'endstream\nendobj\n');
-    startObj(imgN);
-    push('<< /Type /XObject /Subtype /Image /Width '+j.w+' /Height '+j.h+' /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length '+j.bytes.length+' >>\nstream\n');
-    push(j.bytes);
-    push('\nendstream\nendobj\n');
-  });
-  const total = 3+N*3;
-  const xrefPos = offset;
-  let xref = 'xref\n0 '+(total+1)+'\n0000000000 65535 f \n';
-  for(let n=1;n<=total;n++) xref += String(offsets[n]).padStart(10,'0')+' 00000 n \n';
-  push(xref);
-  push('trailer\n<< /Size '+(total+1)+' /Root 1 0 R /Info 3 0 R >>\nstartxref\n'+xrefPos+'\n%%EOF\n');
-  return new Blob(parts,{type:'application/pdf'});
-}
-function pdfxDataUrlToBytes(u){
-  const b = atob(u.split(',')[1]); const a = new Uint8Array(b.length);
-  for(let i=0;i<b.length;i++) a[i]=b.charCodeAt(i);
-  return a;
-}
-function pdfxSaveBlob(blob, filename){
-  const safe = String(filename).replace(/[\\/:*?"<>|]/g,'-'); // ชื่อชั้นเช่น ป.1/1 มี "/" ซึ่งใช้เป็นชื่อไฟล์ไม่ได้
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = safe;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(()=>URL.revokeObjectURL(url), 60000);
-}
-
-/* ---------- ตัวสั่งงานหลัก ---------- */
-async function exportToPDF(html, filename, drawCharts){
-  if(PDFX.busy) return;
-  if(typeof html2canvas==='undefined'){
-    alertToast('ไม่สามารถโหลดไลบรารีสร้าง PDF ได้ (ต้องมีอินเทอร์เน็ต) กรุณาใช้ปุ่ม "พิมพ์รายงาน" แล้วเลือก "บันทึกเป็น PDF" แทน',5000);
-    return;
-  }
-  PDFX.busy = true;
-  // ฉากปิดทับเต็มจอ: เนื้อหาที่ใช้แคปเจอร์ยังอยู่ในพื้นที่จอจริง (ไม่ถูกเบราว์เซอร์มือถือข้ามการวาด) แต่ผู้ใช้มองไม่เห็น
-  const overlay = document.createElement('div'); overlay.className='pdfx-overlay';
-  overlay.innerHTML = '<div id="pdfxMsg">⏳ กำลังสร้างไฟล์ PDF<br>กรุณารอสักครู่...</div>';
-  document.body.appendChild(overlay);
-  const setMsg = t => { const m=overlay.querySelector('#pdfxMsg'); if(m) m.innerHTML=t; };
-  const stage = document.createElement('div'); stage.className='pdfx-stage';
-  document.body.appendChild(stage);
+async function printReport(html, filename, drawCharts, hint){
+  if(PDOC.busy) return;
+  PDOC.busy = true;
   try{
-    await pdfxLoadFonts();
-    const src = document.createElement('div');
-    src.innerHTML = html;
-    if(drawCharts) drawCharts(src);           // วาดกราฟลงใน src เอง (ไม่ชนกับ id ซ้ำในหน้าจอ)
-    pdfxNormalize(src);
-    const pages = pdfxPaginate(src, stage);
-    if(!pages.length) throw new Error('ไม่มีเนื้อหาให้ส่งออก');
-    pages.forEach(p=>p.remove());             // ถอดออกจากจอ เหลือในอาร์เรย์ แล้วแคปทีละหน้า
-    pdfxAddFooters(pages);
-
-    const jpegs = [];
-    for(let i=0;i<pages.length;i++){
-      setMsg('⏳ กำลังสร้างไฟล์ PDF<br>หน้า '+(i+1)+' / '+pages.length);
-      stage.appendChild(pages[i]);
-      await Promise.all(Array.from(pages[i].querySelectorAll('img')).map(im=>im.decode ? im.decode().catch(()=>{}) : null));
-      await pdfxTick(30);
-      const canvas = await html2canvas(pages[i],{
-        scale:PDFX.SCALE, backgroundColor:'#ffffff', useCORS:true, logging:false,
-        width:PDFX.PAGE_W, height:PDFX.PAGE_H, windowWidth:1000, windowHeight:1300, scrollX:0, scrollY:0
-      });
-      jpegs.push({bytes:pdfxDataUrlToBytes(canvas.toDataURL('image/jpeg',PDFX.JPEG_Q)), w:canvas.width, h:canvas.height});
-      canvas.width = canvas.height = 0;       // คืนหน่วยความจำ (สำคัญบนมือถือ)
-      stage.removeChild(pages[i]);
-    }
-    const blob = pdfxBuildFile(jpegs, String(filename).replace(/\.pdf$/i,''));
-    pdfxSaveBlob(blob, filename);
-    alertToast('สร้าง PDF เรียบร้อย ('+pages.length+' หน้า)');
+    pdocCleanup();
+    const root = document.createElement('div');
+    root.id = 'pdocRoot';
+    root.innerHTML = html;
+    document.body.appendChild(root);          // อยู่ใต้ body โดยตรง เพื่อให้ซ่อนส่วนอื่นของแอปตอนพิมพ์ได้หมด
+    await pdocLoadFonts();
+    if(drawCharts) drawCharts(root);          // วาดกราฟลงในเอกสารนี้เอง (id ซ้ำกับหน้าจอ จึงต้องระบุกล่อง)
+    root.querySelectorAll('.card').forEach(c=>{ if(c.querySelectorAll('tr').length>10) c.classList.add('brk'); });
+    PDOC.title = document.title;
+    document.title = String(filename||'รายงาน').replace(/\.pdf$/i,'').replace(/[\\/:*?"<>|]/g,'-');
+    document.body.classList.add('pdoc-printing');
+    if(hint) alertToast(hint,7000);
+    await new Promise(r=>setTimeout(r,250));
+    window.print();
   }catch(err){
     console.error(err);
-    alertToast('สร้าง PDF ไม่สำเร็จ: '+err.message+' - กรุณาใช้ปุ่ม "พิมพ์รายงาน" แทน',5000);
+    pdocCleanup();
+    alertToast('เตรียมเอกสารไม่สำเร็จ: '+err.message,5000);
   }finally{
-    stage.remove();
-    overlay.remove();
-    PDFX.busy = false;
+    PDOC.busy = false;
   }
 }
+const PDF_HINT = 'ในหน้าต่างที่เปิดขึ้น ให้เลือกปลายทางเป็น "บันทึกเป็น PDF" (Save as PDF) แล้วกดบันทึก';
+
 
 /* ============================= BACKUP UI WIRING ============================= */
 document.getElementById('exportBtn').addEventListener('click',exportBackup);
