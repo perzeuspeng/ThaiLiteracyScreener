@@ -1945,7 +1945,13 @@ async function exportToPDF(containerId, filename){
     return;
   }
   const el=document.getElementById(containerId);
-  alertToast('กำลังสร้างไฟล์ PDF กรุณารอสักครู่...',4000);
+
+  // ฉากปิดทับเต็มจอ: ทำให้เนื้อหาที่ใช้แคปเจอร์ยัง "อยู่ในพื้นที่จอจริง" ของเบราว์เซอร์
+  // (ไม่ใช่เลื่อนออกไปไกลลิบๆ นอกจอแบบเดิม ซึ่งมือถือหลายรุ่นจะข้ามการวาด canvas/จัดเลย์เอาต์ตารางให้ถูกต้อง)
+  const overlay=document.createElement('div');
+  overlay.style.cssText='position:fixed;inset:0;background:#fff;z-index:99998;display:flex;align-items:center;justify-content:center;font-family:Sarabun,sans-serif;font-size:16px;color:#16224a;text-align:center;padding:20px;';
+  overlay.innerHTML='<div>⏳ กำลังสร้างไฟล์ PDF<br>กรุณารอสักครู่...</div>';
+  document.body.appendChild(overlay);
 
   // ระยะขอบมาตรฐานเอกสารราชการ (มม.): บน 25 / ขวา 20 / ล่าง 20 / ซ้าย 30
   const PAGE_MM = {w:210, h:297};
@@ -1957,8 +1963,10 @@ async function exportToPDF(containerId, filename){
 
   const prevStyle = el.getAttribute('style')||'';
   el.classList.add('pdf-doc');
-  el.style.cssText = `display:block;position:fixed;left:-9999px;top:0;width:${renderWidthPx}px;background:#fff;padding:0;z-index:-1;`;
-  await new Promise(r=>setTimeout(r,80));
+  // วางไว้ในตำแหน่ง (0,0) ซึ่งยังอยู่ในวิวพอร์ตจริง แต่ถูกฉากทับด้านบนบังไว้มองไม่เห็น
+  el.style.cssText = `display:block;position:fixed;left:0;top:0;width:${renderWidthPx}px;background:#fff;padding:0;z-index:99997;`;
+  await new Promise(r=>setTimeout(r,150));
+  el.offsetHeight; // บังคับให้เบราว์เซอร์คำนวณเลย์เอาต์ให้เสร็จก่อนเริ่มแคปเจอร์
   try{
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF('p','mm','a4');
@@ -1983,6 +1991,7 @@ async function exportToPDF(containerId, filename){
   }finally{
     el.classList.remove('pdf-doc');
     el.setAttribute('style',prevStyle);
+    overlay.remove();
   }
 }
 
