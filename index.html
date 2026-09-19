@@ -108,7 +108,7 @@ tr:hover td{background:#f9fbfd;}
 .ans-table{border-collapse:collapse;text-align:center;}
 .ans-table th,.ans-table td{border:1px solid var(--border);padding:6px 10px;white-space:nowrap;}
 .ans-table th{background:#f4f6f9;color:var(--navy-light);font-size:var(--fs-xs);}
-.ans-table td:first-child,.ans-table th:first-child{text-align:left;font-weight:700;background:#f4f6f9;position:sticky;left:0;}
+.ans-table td:first-child,.ans-table th:first-child{text-align:left;font-weight:700;background:#f4f6f9;}
 .remedial{background:#fff7ec;border:1px solid #f2dcb8;border-radius:8px;padding:8px 12px;font-size:var(--fs-sm);color:#8a5a1e;margin-top:8px;}
 .passage-box{background:#fbfaf6;border:1px solid #ece5d3;border-radius:8px;padding:14px 16px;font-size:var(--fs-md);line-height:2.1;margin-bottom:12px;}
 .reading-controls{display:flex;gap:8px;}
@@ -157,7 +157,7 @@ canvas{max-width:100%;height:auto;}
 .pdf-doc table{width:100%;border-collapse:collapse;font-size:15px;}
 .pdf-doc th,.pdf-doc td{border:1px solid #000 !important;padding:6px 8px;}
 .pdf-doc th{background:#e8e8e8 !important;font-weight:700;}
-.pdf-doc .ans-table th:first-child,.pdf-doc .ans-table td:first-child{background:#e8e8e8 !important;position:static !important;}
+.pdf-doc .ans-table th:first-child,.pdf-doc .ans-table td:first-child{background:#e8e8e8 !important;}
 .pdf-doc .pill,.pdf-doc .badge,.pdf-doc .ans-pass,.pdf-doc .ans-fail,.pdf-doc .ans-untested{
   background:#fff !important;color:#000 !important;border:1px solid #000 !important;border-radius:0 !important;padding:2px 8px;font-weight:700;display:inline-block;
 }
@@ -1472,10 +1472,10 @@ function topicAnswerTableHTML(sid,topic,round){
     const v = tres.reading;
     const mark = v===undefined?'ยังไม่ทำ':v?'ถูก':'ผิด';
     const cls = v===undefined?'ans-untested':v?'ans-pass':'ans-fail';
-    return `<div style="overflow-x:auto;"><table class="ans-table">
+    return `<table class="ans-table">
       <thead><tr><th>หน่วยที่ ${topic.no}</th><th>การอ่านแบ่งวรรคตอน</th></tr></thead>
       <tbody><tr><td>คำตอบ</td><td class="${cls}">${mark}</td></tr></tbody>
-    </table></div>`;
+    </table>`;
   }
   let items=[];
   topic.sections.forEach(sec=>{ sec.items.forEach(it=>items.push(it)); });
@@ -1486,10 +1486,10 @@ function topicAnswerTableHTML(sid,topic,round){
     const cls = v===undefined?'ans-untested':v?'ans-pass':'ans-fail';
     return `<td class="${cls}">${mark}</td>`;
   }).join('');
-  return `<div style="overflow-x:auto;"><table class="ans-table">
+  return `<table class="ans-table">
     <thead><tr><th>หน่วยที่ ${topic.no}</th>${headerCells}</tr></thead>
     <tbody><tr><td>คำตอบ</td>${bodyCells}</tr></tbody>
-  </table></div>`;
+  </table>`;
 }
 function itemDetailSectionHTML(sid,round){
   return TOPICS.map(t=>{
@@ -1847,7 +1847,10 @@ document.getElementById('pdfRemedialBtn').addEventListener('click',async ()=>{
    ไม่มีทางตัดผ่านกลางแถว/กลางตารางเด็ดขาด และหัวตารางจะพิมพ์ซ้ำทุกหน้าที่ตารางมีต่อ */
 function pdfEnsureSpace(pdf, ctx, neededMM){
   const availableMM = ctx.CONTENT_H_MM - (ctx.cursorY - ctx.M.top);
-  if(neededMM > availableMM + 0.01){
+  const pageIsEmpty = (ctx.cursorY - ctx.M.top) < 0.01;
+  // ขึ้นหน้าใหม่เฉพาะเมื่อหน้าปัจจุบันมีเนื้อหาอยู่แล้วและไม่พอเท่านั้น
+  // ถ้าหน้ายังว่างอยู่ (เพิ่งขึ้นหน้าใหม่) จะไม่ขึ้นหน้าใหม่ซ้ำอีก ป้องกันหน้ากระดาษเปล่า
+  if(neededMM > availableMM + 0.01 && !pageIsEmpty){
     pdf.addPage();
     ctx.cursorY = ctx.M.top;
     return true;
@@ -1896,10 +1899,18 @@ async function pdfLayoutTable(pdf, table, ctx){
       groupEndPx = rowBottomPx; j++;
     }
     if(j===i){
-      // แม้แถวเดียวก็ไม่พอสำหรับพื้นที่ที่เหลือในหน้านี้ -> ขึ้นหน้าใหม่แล้วพิมพ์หัวตารางซ้ำ
-      pdf.addPage(); ctx.cursorY = ctx.M.top;
-      placeHeader();
-      continue;
+      const pageIsEmpty = (ctx.cursorY - ctx.M.top) < 0.01;
+      if(pageIsEmpty){
+        // อยู่หน้าใหม่ล้วนๆ แล้วแต่แถวเดียวก็ยังไม่พอ (แถวใหญ่ผิดปกติ) -> วางแถวนี้ไปเลย
+        // เพื่อป้องกันการขึ้นหน้าใหม่ไม่รู้จบจนกลายเป็นหน้ากระดาษเปล่าติดกันหลายหน้า
+        groupEndPx = rows[i].offsetTop + rows[i].offsetHeight;
+        j = i+1;
+      }else{
+        // แม้แถวเดียวก็ไม่พอสำหรับพื้นที่ที่เหลือในหน้านี้ -> ขึ้นหน้าใหม่แล้วพิมพ์หัวตารางซ้ำ
+        pdf.addPage(); ctx.cursorY = ctx.M.top;
+        placeHeader();
+        continue;
+      }
     }
     const sy = groupStartPx*canvasScaleY, sh=(groupEndPx-groupStartPx)*canvasScaleY;
     const sliceCanvas = pdfCropCanvas(canvas,0,sy,canvas.width,sh);
