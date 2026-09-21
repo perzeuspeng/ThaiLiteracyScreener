@@ -888,7 +888,7 @@ async function saveData(){ return cloudOn() ? cloudSave() : localSaveData(); }
    - ส่งเฉพาะ "สิ่งที่เปลี่ยน" (ops) ไปเซิร์ฟเวอร์ จึงไม่ทับงานของครูท่านอื่น */
 const CLOUD = {
   clientId:  '13095022625-k8li3stc92l8ss8dgmddml1ekrk5u9he.apps.googleusercontent.com',      // ← OAuth Client ID เช่น 1234-abcd.apps.googleusercontent.com
-  scriptUrl: '',      // ← URL Web App ของ Apps Script เช่น https://script.google.com/macros/s/AKfy.../exec
+  scriptUrl: 'https://script.google.com/macros/s/AKfycbzZAmh-ZEu09uy3kiXnBJ5dese7ByMuQSpIdJVeDsLb7rXqAfxHeg73dIJ6RANjEZxwBA/exec',      // ← URL Web App ของ Apps Script เช่น https://script.google.com/macros/s/AKfy.../exec
   pollMs:    45000    // ตรวจข้อมูลใหม่จากครูท่านอื่นทุกกี่มิลลิวินาที
 };
 const cloudOn = () => !!(CLOUD.clientId && CLOUD.scriptUrl);
