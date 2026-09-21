@@ -257,9 +257,42 @@ canvas{max-width:100%;height:auto;}
 @media (max-width:400px){
   .stat-box{min-width:100%;}
 }
+/* ===================== ระบบเข้าสู่ระบบด้วย Google / หน้าผู้ดูแล (โหมดคลาวด์) ===================== */
+#authOverlay{position:fixed;inset:0;z-index:9000;background:linear-gradient(160deg,var(--navy-dark),var(--navy));display:none;align-items:center;justify-content:center;padding:20px;overflow:auto;}
+#authOverlay.open{display:flex;}
+.auth-card{background:#fff;border-radius:18px;max-width:440px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35);}
+.auth-card .auth-logo{font-size:40px;line-height:1;margin-bottom:6px;}
+.auth-card h1{font-size:20px;margin:0 0 6px;color:var(--navy-dark);}
+.auth-card p{font-size:var(--fs-sm);color:var(--muted);margin:6px 0;line-height:1.6;}
+.auth-card .auth-msg{background:#fff4f2;border:1px solid #f3c2b8;color:#a23a24;border-radius:10px;padding:8px 12px;font-size:var(--fs-sm);margin:12px 0;}
+.auth-card .auth-ok{background:#eef8f1;border:1px solid #bfe3cb;color:#2a7a48;border-radius:10px;padding:8px 12px;font-size:var(--fs-sm);margin:12px 0;}
+.auth-card .field{text-align:left;margin:10px 0;}
+.auth-card .field label{display:block;font-size:var(--fs-sm);font-weight:700;margin-bottom:4px;}
+.auth-card .field input,.auth-card .field textarea{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit;}
+.auth-card .btn{margin:6px 4px 0;}
+.auth-who{display:flex;align-items:center;gap:10px;justify-content:center;margin:10px 0;font-size:var(--fs-sm);}
+.auth-who img{width:36px;height:36px;border-radius:50%;}
+.auth-spin{width:34px;height:34px;border:4px solid #dfe5f2;border-top-color:var(--accent);border-radius:50%;margin:14px auto;animation:authspin 1s linear infinite;}
+@keyframes authspin{to{transform:rotate(360deg);}}
+#userChip{display:none;padding:0 18px 12px;font-size:var(--fs-2xs);line-height:1.5;color:#cfd8f3;word-break:break-all;}
+#userChip a{color:#fff;text-decoration:underline;cursor:pointer;}
+.adm-badge{display:none;background:#e24c3a;color:#fff;border-radius:999px;font-size:11px;padding:0 7px;margin-left:6px;font-weight:700;}
+.adm-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+.adm-row:last-child{border-bottom:none;}
+.adm-row .who{flex:1 1 220px;min-width:0;}
+.adm-row .who b{display:block;}
+.adm-row .who span{font-size:var(--fs-xs);color:var(--muted);word-break:break-all;}
+.adm-actions{display:flex;gap:6px;flex-wrap:wrap;}
+.btn-sm{padding:6px 12px;font-size:var(--fs-xs);}
+.adm-stats{display:flex;gap:18px;flex-wrap:wrap;margin:6px 0 10px;font-size:var(--fs-sm);}
+.adm-stats b{font-size:var(--fs-lg);display:block;color:var(--navy);}
+.adm-warn{color:#b3391f;font-weight:700;}
+.adm-empty{color:var(--muted);font-size:var(--fs-sm);padding:6px 0;}
+body.role-teacher .perm-admin{display:none !important;}
 </style>
 </head>
 <body>
+<div id="authOverlay"><div class="auth-card" id="authCard"></div></div>
 <div class="topbar no-print">
   <span class="topbar-title" id="topbarTitle">แดชบอร์ด</span>
   <span class="topbar-avatar">👤</span>
@@ -269,11 +302,12 @@ canvas{max-width:100%;height:auto;}
     <h1>📘 Thai Literacy Screener</h1>
     <div class="sub" id="schoolNameTag">ยังไม่ได้ตั้งชื่อโรงเรียน</div>
     <div class="sub" id="saveStatus" style="font-size:var(--fs-2xs);"></div>
+    <div id="userChip"></div>
     <div class="nav-group-label">ภาพรวม</div>
     <div class="nav-item active" data-screen="dashboard"><span class="nav-icon">🏠</span> แดชบอร์ด</div>
     <div class="nav-group-label">ข้อมูล</div>
     <div class="nav-item" data-screen="settings"><span class="nav-icon">🏫</span> โรงเรียน / ชั้นเรียน</div>
-    <div class="nav-item" data-screen="students"><span class="nav-icon">🧒</span> รายชื่อนักเรียน</div>
+    <div class="nav-item perm-admin" data-screen="students"><span class="nav-icon">🧒</span> รายชื่อนักเรียน</div>
     <div class="nav-group-label">ประเมิน</div>
     <div class="nav-item" data-screen="assess"><span class="nav-icon">📝</span> คัดกรองนักเรียน</div>
     <div class="nav-group-label">รายงาน</div>
@@ -281,6 +315,8 @@ canvas{max-width:100%;height:auto;}
     <div class="nav-item" data-screen="reportClass"><span class="nav-icon">📊</span> รายงานรายชั้น</div>
     <div class="nav-item" data-screen="reportSchool"><span class="nav-icon">🏫</span> รายงานภาพรวมโรงเรียน</div>
     <div class="nav-item" data-screen="reportRemedial"><span class="nav-icon">🧩</span> กลุ่มที่ต้องซ่อมเสริม</div>
+    <div class="nav-group-label admin-only" style="display:none">ผู้ดูแล</div>
+    <div class="nav-item admin-only" data-screen="admin" style="display:none"><span class="nav-icon">👑</span> ผู้ดูแลระบบ<span class="adm-badge" id="admBadge"></span></div>
   </div>
 
   <main>
@@ -307,11 +343,19 @@ canvas{max-width:100%;height:auto;}
       </div>
     </div>
 
+    <!-- ADMIN -->
+    <div class="screen" id="screen-admin">
+      <h2 class="page-title">ผู้ดูแลระบบ</h2>
+      <div class="page-desc">อนุมัติผู้ใช้ ตรวจสอบและสำรองข้อมูลของโรงเรียน (เห็นเฉพาะผู้ดูแล)</div>
+      <div id="adminBody"></div>
+    </div>
+
     <!-- SETTINGS -->
     <div class="screen" id="screen-settings">
       <h2 class="page-title">ข้อมูลโรงเรียน / ชั้นเรียน</h2>
       <div class="page-desc">ตั้งค่าชื่อโรงเรียนและจัดการรายชื่อชั้นเรียน</div>
-      <div class="card">
+      <div class="card" id="accountCard" style="display:none"><h3>บัญชีผู้ใช้</h3><div id="accountBody"></div></div>
+      <div class="card perm-admin">
         <h3>ข้อมูลโรงเรียน</h3>
         <div class="grid grid-2">
           <div class="field"><label>ชื่อโรงเรียน</label><input type="text" id="schoolNameInput" placeholder="เช่น โรงเรียนบ้านตัวอย่าง"></div>
@@ -327,21 +371,21 @@ canvas{max-width:100%;height:auto;}
           <li>กดปุ่ม "ดาวน์โหลดข้อมูลสำรอง" ด้านล่างเป็นประจำ แล้วใช้ "นำเข้าข้อมูล" เพื่อกู้คืนทุกครั้งที่เปิดใช้งานใหม่</li>
         </ol>
       </div>
-      <div class="card">
+      <div class="card perm-admin">
         <h3>สำรองข้อมูล</h3>
         <p style="font-size:var(--fs-sm);color:var(--muted);">ดาวน์โหลดข้อมูลทั้งหมด (โรงเรียน ชั้นเรียน นักเรียน ผลคัดกรอง) เก็บไว้เป็นไฟล์สำรอง หรือกู้คืนจากไฟล์ที่เคยดาวน์โหลดไว้</p>
         <button class="btn btn-outline" id="exportBtn">⬇️ ดาวน์โหลดข้อมูลสำรอง (.json)</button>
         <label class="btn btn-outline" for="importFile" style="display:inline-flex;">⬆️ นำเข้าข้อมูล</label>
         <input type="file" id="importFile" accept="application/json" style="display:none;">
       </div>
-      <div class="card" id="rosterImportCard">
+      <div class="card perm-admin" id="rosterImportCard">
         <h3>นำเข้ารายชื่อนักเรียนจากไฟล์ (Excel/CSV)</h3>
         <p style="font-size:var(--fs-sm);color:var(--muted);">ไฟล์ต้องมีคอลัมน์: <b>ชื่อ-นามสกุล</b>, <b>ชั้นเรียน</b> (เช่น ป.1), <b>ห้อง</b> (เช่น 1) — ระบบจะสร้างชั้นเรียนที่ยังไม่มีให้อัตโนมัติ ตรวจเพศจากคำนำหน้าชื่อ (เด็กชาย/เด็กหญิง) และจัดเรียงเลขที่ในแต่ละชั้น: <b>เด็กชายเรียงตามตัวอักษรก่อน แล้วตามด้วยเด็กหญิงเรียงตามตัวอักษร</b></p>
         <label class="btn btn-outline" for="rosterImportFile" style="display:inline-flex;">📥 เลือกไฟล์ Excel/CSV</label>
         <input type="file" id="rosterImportFile" accept=".xlsx,.xls,.csv" style="display:none;">
         <div id="rosterImportSummary" style="margin-top:10px;font-size:var(--fs-sm);"></div>
       </div>
-      <div class="card">
+      <div class="card perm-admin">
         <h3>ชั้นเรียน</h3>
         <div class="toolbar no-print">
           <div class="grid grid-3" style="flex:1;display:grid;">
@@ -414,7 +458,7 @@ canvas{max-width:100%;height:auto;}
           </select></div>
           <div class="field"><label>วันที่ประเมิน</label><input type="date" id="assessDate"></div>
         </div>
-        <button class="btn btn-danger btn-sm" id="deleteAssessBtn">🗑️ ลบผลการประเมินรอบนี้</button>
+        <button class="btn btn-danger btn-sm perm-admin" id="deleteAssessBtn">🗑️ ลบผลการประเมินรอบนี้</button>
       </div>
       <div id="assessArea"></div>
     </div>
@@ -509,7 +553,7 @@ canvas{max-width:100%;height:auto;}
 
 <nav class="bottom-tabs no-print" id="bottomTabs">
   <button class="bt-item active" data-tab="dashboard" data-screen="dashboard"><span class="bt-icon">🏠</span><span class="bt-label">หน้าแรก</span></button>
-  <button class="bt-item" data-tab="students" data-screen="students"><span class="bt-icon">🧒</span><span class="bt-label">นักเรียน</span></button>
+  <button class="bt-item perm-admin" data-tab="students" data-screen="students"><span class="bt-icon">🧒</span><span class="bt-label">นักเรียน</span></button>
   <button class="bt-item bt-fab" data-tab="assess" data-screen="assess"><span class="bt-icon">✚</span><span class="bt-label">ประเมิน</span></button>
   <button class="bt-item" data-tab="report" data-screen="reportStudent"><span class="bt-icon">📊</span><span class="bt-label">รายงาน</span></button>
   <button class="bt-item" data-tab="settings" data-screen="settings"><span class="bt-icon">⚙️</span><span class="bt-label">เพิ่มเติม</span></button>
@@ -801,7 +845,7 @@ function setSaveStatus(ok,msg){
   if(warnCard) warnCard.style.display = ok ? 'none' : 'block';
 }
 
-async function loadData(){
+async function localLoadData(){
   let loaded=false;
   try{
     if(window.storage){
@@ -823,7 +867,7 @@ async function loadData(){
     }catch(e){ /* blocked (e.g. sandboxed iframe) */ }
   }
 }
-async function saveData(){
+async function localSaveData(){
   const json = JSON.stringify(DATA);
   let okAny=false;
   let winStorageOk=false, localStorageOk=false;
@@ -835,8 +879,482 @@ async function saveData(){
   return okAny;
 }
 function uid(){ return 'id'+Date.now().toString(36)+Math.random().toString(36).slice(2,8); }
+async function loadData(){ if(cloudOn()) return; return localLoadData(); }   // โหมดคลาวด์: โหลดหลังเข้าสู่ระบบ
+async function saveData(){ return cloudOn() ? cloudSave() : localSaveData(); }
+
+/* ============================= โหมดคลาวด์: เข้าสู่ระบบ Google + เก็บข้อมูลใน Drive ของแอดมิน =============================
+   - ใส่ clientId และ scriptUrl ตามคู่มือ SETUP_TH.md  (เว้นว่างไว้ = โหมดเครื่องเดียวเหมือนเดิมทุกอย่าง)
+   - หน้าเว็บไม่คุยกับ Drive โดยตรง: ทุกอย่างผ่านหลังบ้าน (Apps Script) ที่ตรวจสิทธิ์ทุกคำขอ
+   - ส่งเฉพาะ "สิ่งที่เปลี่ยน" (ops) ไปเซิร์ฟเวอร์ จึงไม่ทับงานของครูท่านอื่น */
+const CLOUD = {
+  clientId:  '13095022625-k8li3stc92l8ss8dgmddml1ekrk5u9he.apps.googleusercontent.com',      // ← OAuth Client ID เช่น 1234-abcd.apps.googleusercontent.com
+  scriptUrl: '',      // ← URL Web App ของ Apps Script เช่น https://script.google.com/macros/s/AKfy.../exec
+  pollMs:    45000    // ตรวจข้อมูลใหม่จากครูท่านอื่นทุกกี่มิลลิวินาที
+};
+const cloudOn = () => !!(CLOUD.clientId && CLOUD.scriptUrl);
+const AUTH = {session:null,user:null,role:null,idToken:null,rev:0,baseFlat:{},timer:null,syncing:false,pulling:false,again:false,retry:0,entered:false,poll:null,admin:null};
+
+/* ---------- SHARED:SYNC-CORE (ใช้ร่วมกันทั้งหน้าเว็บและ Apps Script — ห้ามแก้แยกกัน) ---------- */
+// แปลงข้อมูลทั้งก้อนเป็นตารางแบน "คีย์ -> ค่า(JSON)" เพื่อเทียบว่าอะไรเปลี่ยน แล้วส่งเฉพาะส่วนที่เปลี่ยน (ops)
+function syncFlatten(d){
+  const m={};
+  d=d||{};
+  m['school']=JSON.stringify(d.school||{name:'',year:''});
+  (d.classes||[]).forEach(function(c){ m['c:'+c.id]=JSON.stringify(c); });
+  (d.students||[]).forEach(function(s){ m['s:'+s.id]=JSON.stringify(s); });
+  var R=d.results||{};
+  Object.keys(R).forEach(function(sid){
+    var S=R[sid]||{};
+    ['pre','post'].forEach(function(rd){
+      var T=S[rd]||{};
+      Object.keys(T).forEach(function(t){
+        var I=T[t]||{};
+        Object.keys(I).forEach(function(i){ m['r:'+sid+'|'+rd+'|'+t+'|'+i]=JSON.stringify(I[i]); });
+      });
+    });
+  });
+  return m;
+}
+function syncDiffFlat(a,b){
+  var ops=[],k;
+  for(k in b){ if(a[k]!==b[k]) ops.push({k:k,v:JSON.parse(b[k])}); }
+  for(k in a){ if(!(k in b)) ops.push({k:k,d:1}); }
+  return ops;
+}
+function syncApplyOps(d,ops){
+  d.school=d.school||{name:'',year:''}; d.classes=d.classes||[]; d.students=d.students||[]; d.results=d.results||{};
+  ops.forEach(function(op){
+    var k=op.k, t=k.charAt(0);
+    if(k==='school'){ if(op.v) d.school=op.v; return; }
+    if(t==='c'||t==='s'){
+      var id=k.slice(2), arr=(t==='c')?d.classes:d.students, i=-1, j;
+      for(j=0;j<arr.length;j++){ if(arr[j].id===id){ i=j; break; } }
+      if(op.d){ if(i>=0) arr.splice(i,1); if(t==='s') delete d.results[id]; }
+      else { if(i>=0) arr[i]=op.v; else arr.push(op.v); }
+      return;
+    }
+    if(t==='r'){
+      var p=k.slice(2).split('|'), sid=p[0], rd=p[1], tp=p[2], ix=p[3];
+      if(op.d){
+        var R=d.results[sid];
+        if(!R||!R[rd]||!R[rd][tp]) return;
+        delete R[rd][tp][ix];
+        if(!Object.keys(R[rd][tp]).length) delete R[rd][tp];
+      } else {
+        if(!d.results[sid]) d.results[sid]={};
+        if(!d.results[sid][rd]) d.results[sid][rd]={};
+        if(!d.results[sid][rd][tp]) d.results[sid][rd][tp]={};
+        d.results[sid][rd][tp][ix]=op.v;
+      }
+    }
+  });
+  return d;
+}
+/* ---------- END SHARED:SYNC-CORE ---------- */
+
+
+/* ---------- สิทธิ์การใช้งาน ----------
+   ครู (teacher)  : ประเมิน, ส่งออก PDF, พิมพ์รายงาน (ดูข้อมูลทั้งโรงเรียนได้ แต่แก้ข้อมูลโรงเรียน/ชั้น/นักเรียน นำเข้า สำรอง ไม่ได้)
+   แอดมิน (admin) : ทำได้ทุกอย่าง
+   โหมดเครื่องเดียว (ไม่ตั้งค่าคลาวด์): ทำได้ทุกอย่างเหมือนเดิม
+   หน้าเว็บซ่อนปุ่ม + ตรวจซ้ำก่อนทำงาน และเซิร์ฟเวอร์เป็นตัวบังคับจริง (ซ่อนปุ่มอย่างเดียวไม่ปลอดภัย) */
+function isAdminRole(){ return !cloudOn() || AUTH.role==='admin'; }
+function denyIfNotAdmin(what){
+  if(isAdminRole()) return false;
+  alertToast('สิทธิ์ครูไม่สามารถ'+what+'ได้ (เฉพาะผู้ดูแลระบบ)');
+  return true;
+}
+const TEACHER_SCREENS = ['dashboard','assess','reportStudent','reportClass','reportSchool','reportRemedial','settings'];
+function guardScreen(name){
+  if(isAdminRole()) return name;
+  if(!TEACHER_SCREENS.includes(name)){ alertToast('หน้านี้สำหรับผู้ดูแลระบบเท่านั้น'); return 'dashboard'; }
+  return name;
+}
+// ครูแก้ได้เฉพาะ "ตั้งค่าคำตอบ" ของผลประเมิน (ไม่ลบ ไม่แตะโรงเรียน/ชั้น/นักเรียน)
+const teacherAllowedOp = o => o.k.charAt(0)==='r' && !o.d;
+function revertOps(bad){
+  const inv=bad.map(o=>(o.k in AUTH.baseFlat) ? {k:o.k,v:JSON.parse(AUTH.baseFlat[o.k])} : {k:o.k,d:1});
+  syncApplyOps(DATA,inv);
+}
+
+function cEsc(s){ return String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function cTime(iso){ try{ return iso?new Date(iso).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}):'-'; }catch(e){ return '-'; } }
+
+/* ---------- คุยกับหลังบ้าน ---------- */
+async function cloudApi(action,payload){
+  let r;
+  try{
+    const res = await fetch(CLOUD.scriptUrl,{method:'POST',body:JSON.stringify(Object.assign({action:action,session:AUTH.session},payload||{}))});
+    r = await res.json();
+  }catch(e){ return {ok:false,code:'NETWORK',message:'เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ (ตรวจสอบอินเทอร์เน็ต)'}; }
+  if(!r.ok && r.code==='AUTH' && AUTH.entered && action!=='login' && action!=='register') cloudSessionLost(r.message);
+  return r;
+}
+
+/* ---------- หน้าจอเข้าสู่ระบบ ---------- */
+const authEl = () => document.getElementById('authCard');
+function authShow(html){ authEl().innerHTML = html; document.getElementById('authOverlay').classList.add('open'); }
+function authHide(){ document.getElementById('authOverlay').classList.remove('open'); }
+function authLoading(msg){ authShow('<div class="auth-logo">📘</div><h1>Thai Literacy Screener</h1><div class="auth-spin"></div><p>'+cEsc(msg||'กำลังโหลด…')+'</p>'); }
+function authError(msg,retry){
+  authShow('<div class="auth-logo">⚠️</div><h1>เกิดปัญหา</h1><div class="auth-msg">'+cEsc(msg)+'</div>'+
+    (retry?'<button class="btn btn-primary" id="authRetry">ลองอีกครั้ง</button>':'<button class="btn btn-primary" id="authRetry">กลับไปหน้าเข้าสู่ระบบ</button>'));
+  document.getElementById('authRetry').onclick = () => retry ? cloudEnter() : authSignIn();
+}
+function authWho(u){ return '<div class="auth-who">'+(u&&u.picture?'<img src="'+cEsc(u.picture)+'" alt="">':'')+'<div><b>'+cEsc((u&&u.name)||'')+'</b><br><span style="color:var(--muted)">'+cEsc((u&&u.email)||'')+'</span></div></div>'; }
+function authSignIn(msg){
+  authShow('<div class="auth-logo">📘</div><h1>Thai Literacy Screener</h1><p>ระบบคัดกรองพัฒนาการพูด อ่าน เขียนภาษาไทย<br>สำหรับครูในโรงเรียน เข้าสู่ระบบด้วยบัญชี Google</p>'+
+    (msg?'<div class="auth-msg">'+cEsc(msg)+'</div>':'')+'<div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px;"></div>'+
+    '<p style="font-size:var(--fs-xs)">ยังไม่เคยใช้งาน? เข้าสู่ระบบด้วย Google ก่อน แล้วระบบจะให้กรอกคำขอลงทะเบียนส่งถึงผู้ดูแล</p>');
+  try{ google.accounts.id.renderButton(document.getElementById('gsiBtn'),{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',locale:'th',width:260}); }catch(e){ authError('แสดงปุ่ม Google ไม่ได้: '+e.message); }
+}
+function authRegister(u){
+  authShow('<div class="auth-logo">📝</div><h1>ขอลงทะเบียนใช้งาน</h1>'+authWho(u)+
+    '<p>บัญชีนี้ยังไม่ได้รับอนุญาต กรอกข้อมูลแล้วกดส่งคำขอ ผู้ดูแลระบบจะได้รับอีเมลแจ้ง</p>'+
+    '<div class="field"><label>ชื่อ-นามสกุล *</label><input id="regName" maxlength="100" value="'+cEsc(u&&u.name||'')+'"></div>'+
+    '<div class="field"><label>หมายเหตุ (ไม่บังคับ เช่น สอนชั้นไหน)</label><textarea id="regNote" rows="2" maxlength="300"></textarea></div>'+
+    '<div id="regMsg"></div><button class="btn btn-primary" id="regSubmit">ส่งคำขอลงทะเบียน</button><button class="btn btn-outline" id="regOut">ใช้บัญชีอื่น</button>');
+  document.getElementById('regOut').onclick = cloudLogout;
+  document.getElementById('regSubmit').onclick = async () => {
+    const name=document.getElementById('regName').value.trim(), note=document.getElementById('regNote').value.trim();
+    if(name.length<2){ document.getElementById('regMsg').innerHTML='<div class="auth-msg">กรุณากรอกชื่อ-นามสกุลให้ครบถ้วน</div>'; return; }
+    document.getElementById('regSubmit').disabled=true;
+    const r = await cloudApi('register',{idToken:AUTH.idToken,fullName:name,note:note});
+    if(!r.ok){ document.getElementById('regSubmit').disabled=false; document.getElementById('regMsg').innerHTML='<div class="auth-msg">'+cEsc(r.message||'ส่งคำขอไม่สำเร็จ')+'</div>'; return; }
+    if(r.status==='approved') return cloudLoginWithToken();
+    authPending(r.user||u, r.mailed===false);
+  };
+}
+function authPending(u,noMail){
+  authShow('<div class="auth-logo">⏳</div><h1>ส่งคำขอแล้ว รอการอนุมัติ</h1>'+authWho(u)+
+    '<p>ผู้ดูแลระบบจะตรวจสอบและอนุมัติคำขอของคุณ เมื่ออนุมัติแล้วให้กด "ตรวจสอบสถานะ" หรือเข้าสู่ระบบใหม่</p>'+
+    (noMail?'<p style="font-size:var(--fs-xs)">(ระบบส่งอีเมลแจ้งผู้ดูแลไม่สำเร็จ ผู้ดูแลจะเห็นคำขอเมื่อเข้าหน้าผู้ดูแลระบบ)</p>':'')+
+    '<button class="btn btn-primary" id="authCheck">ตรวจสอบสถานะ</button><button class="btn btn-outline" id="authOut">ออกจากระบบ</button>');
+  document.getElementById('authOut').onclick = cloudLogout;
+  document.getElementById('authCheck').onclick = () => { authLoading('กำลังตรวจสอบสถานะ…'); cloudLoginWithToken(); };
+}
+function authDenied(status,u){
+  const blocked = status==='blocked';
+  authShow('<div class="auth-logo">🚫</div><h1>'+(blocked?'บัญชีนี้ถูกระงับสิทธิ์':'คำขอไม่ได้รับการอนุมัติ')+'</h1>'+authWho(u)+
+    '<p>'+(blocked?'กรุณาติดต่อผู้ดูแลระบบของโรงเรียน':'หากคิดว่าเป็นความผิดพลาด คุณสามารถส่งคำขอใหม่ได้')+'</p>'+
+    (blocked?'':'<button class="btn btn-primary" id="authAgain">ส่งคำขอใหม่</button>')+'<button class="btn btn-outline" id="authOut">ออกจากระบบ</button>');
+  document.getElementById('authOut').onclick = cloudLogout;
+  const again=document.getElementById('authAgain'); if(again) again.onclick = () => authRegister(u);
+}
+
+/* ---------- เข้าสู่ระบบ ---------- */
+function loadGsi(){
+  return new Promise((res,rej)=>{
+    if(window.google && google.accounts && google.accounts.id) return res();
+    const s=document.createElement('script'); s.src='https://accounts.google.com/gsi/client'; s.async=true;
+    s.onload=()=>res(); s.onerror=()=>rej(new Error('โหลด Google Sign-In ไม่ได้ (ตรวจสอบอินเทอร์เน็ต)'));
+    document.head.appendChild(s);
+  });
+}
+async function onGoogleCredential(resp){
+  AUTH.idToken = resp && resp.credential;
+  authLoading('กำลังตรวจสอบสิทธิ์…');
+  await cloudLoginWithToken();
+}
+async function cloudLoginWithToken(){
+  const r = await cloudApi('login',{idToken:AUTH.idToken});
+  if(!r.ok) return authSignIn(r.code==='AUTH' ? 'การเข้าสู่ระบบหมดอายุ กรุณากดเข้าสู่ระบบอีกครั้ง' : (r.message||'เข้าสู่ระบบไม่สำเร็จ'));
+  AUTH.user = r.user;
+  if(r.status==='approved'){
+    AUTH.session=r.session; AUTH.role=r.role;
+    try{ localStorage.setItem('tls-session',JSON.stringify({session:r.session,user:r.user,role:r.role})); }catch(e){}
+    return cloudEnter();
+  }
+  if(r.status==='unregistered') return authRegister(r.user);
+  if(r.status==='pending') return authPending(r.user);
+  authDenied(r.status,r.user);
+}
+async function cloudInit(){
+  authLoading('กำลังเตรียมระบบ…');
+  try{
+    await loadGsi();
+    google.accounts.id.initialize({client_id:CLOUD.clientId,callback:onGoogleCredential,auto_select:true,cancel_on_tap_outside:false});
+  }catch(e){ return authError(e.message); }
+  let saved=null; try{ saved=JSON.parse(localStorage.getItem('tls-session')||'null'); }catch(e){}
+  if(saved && saved.session){
+    AUTH.session=saved.session; AUTH.user=saved.user; AUTH.role=saved.role;
+    if(await cloudEnter(true)) return;
+    AUTH.session=null;
+    try{ localStorage.removeItem('tls-session'); }catch(e){}
+  }
+  authSignIn();
+  try{ google.accounts.id.prompt(); }catch(e){}
+}
+async function cloudEnter(resume){
+  authLoading('กำลังโหลดข้อมูลโรงเรียน…');
+  const r = await cloudApi('getData',{});
+  if(!r.ok){
+    if(r.code==='AUTH') return false;
+    authError(r.message||'โหลดข้อมูลไม่สำเร็จ',true); return false;
+  }
+  DATA = { school:r.data.school||{name:'',year:''}, classes:r.data.classes||[], students:r.data.students||[], results:r.data.results||{} };
+  AUTH.rev=r.rev; AUTH.baseFlat=syncFlatten(DATA); AUTH.entered=true;
+  outboxRecover();
+  authHide(); applyRoleUI(); updateSchoolTag(); showScreen('dashboard');
+  if(typeof r.pending==='number') setAdminBadge(r.pending);
+  startPolling();
+  if(AUTH.role==='admin') maybeAnnounceLocalData();
+  return true;
+}
+function cloudSessionLost(msg){
+  AUTH.entered=false; AUTH.session=null; stopPolling();
+  outboxSave(syncDiffFlat(AUTH.baseFlat,syncFlatten(DATA)));
+  try{ localStorage.removeItem('tls-session'); }catch(e){}
+  authSignIn((msg||'เซสชันหมดอายุ')+' — งานที่ยังไม่ได้บันทึกจะถูกเก็บไว้และส่งให้อัตโนมัติหลังเข้าสู่ระบบใหม่');
+}
+async function cloudLogout(){
+  if(AUTH.entered && (AUTH.timer||AUTH.syncing)){ clearTimeout(AUTH.timer); AUTH.timer=null; await cloudPush(); }
+  try{ google.accounts.id.disableAutoSelect(); }catch(e){}
+  try{ localStorage.removeItem('tls-session'); }catch(e){}
+  location.reload();
+}
+
+/* ---------- ซิงก์ข้อมูล ---------- */
+function setCloudStatus(kind,msg){
+  const el=document.getElementById('saveStatus'); if(!el) return;
+  if(kind==='ok'){ el.textContent='☁ ซิงก์แล้ว '+new Date().toLocaleTimeString('th-TH'); el.style.color='#8fd6ae'; }
+  else if(kind==='wait'){ el.textContent='☁ '+(msg||'กำลังบันทึก…'); el.style.color='#f3e2a8'; }
+  else { el.textContent='⚠ '+(msg||'ซิงก์ไม่สำเร็จ'); el.style.color='#f3b8a8'; }
+  const w=document.getElementById('backupWarnCard'); if(w) w.style.display='none';
+}
+async function cloudSave(){
+  if(!AUTH.session||!AUTH.entered) return false;
+  clearTimeout(AUTH.timer);
+  AUTH.timer = setTimeout(cloudPush,1200);
+  setCloudStatus('wait','กำลังบันทึก…');
+  return true;
+}
+// ตัดอักขระ < > " ` ออกจากชื่อ/ข้อความก่อนส่ง (เซิร์ฟเวอร์ไม่รับอักขระเหล่านี้ เพื่อกันการแทรกโค้ดถึงครูท่านอื่น)
+function cloudSanitize(){
+  const clean=o=>{ if(o&&typeof o==='object') Object.keys(o).forEach(k=>{ if(typeof o[k]==='string') o[k]=o[k].replace(/[<>"`]/g,''); }); };
+  clean(DATA.school); DATA.classes.forEach(clean); DATA.students.forEach(clean);
+}
+async function cloudPush(){
+  AUTH.timer=null;
+  if(!AUTH.session||!AUTH.entered) return;
+  if(AUTH.syncing){ AUTH.again=true; return; }
+  cloudSanitize();
+  let cur=syncFlatten(DATA), ops=syncDiffFlat(AUTH.baseFlat,cur);
+  if(AUTH.role!=='admin'){
+    const bad=ops.filter(o=>!teacherAllowedOp(o));
+    if(bad.length){
+      revertOps(bad);                         // ย้อนสิ่งที่สิทธิ์ครูไม่อนุญาตกลับเป็นค่าของระบบกลาง
+      cur=syncFlatten(DATA); ops=syncDiffFlat(AUTH.baseFlat,cur);
+      alertToast('สิทธิ์ครูแก้ไขส่วนนี้ไม่ได้ (เฉพาะผู้ดูแลระบบ) ระบบย้อนกลับให้แล้ว',5000);
+      if(typeof refreshAfterPull==='function') refreshAfterPull(true);
+    }
+  }
+  if(!ops.length){ setCloudStatus('ok'); outboxClear(); return; }
+  AUTH.syncing=true; setCloudStatus('wait','กำลังซิงก์…');
+  let merged=false, failed=null;
+  for(let i=0;i<ops.length;i+=3000){
+    const r = await cloudApi('saveOps',{baseRev:AUTH.rev,ops:ops.slice(i,i+3000)});
+    if(!r.ok){ failed=r; break; }
+    AUTH.rev=r.rev; merged=merged||r.merged;
+  }
+  AUTH.syncing=false;
+  if(failed){
+    if(failed.code==='AUTH') return;
+    if(failed.code==='FORBIDDEN'){ revertOps(ops); outboxClear(); setCloudStatus('ok'); alertToast(failed.message||'ไม่มีสิทธิ์แก้ไขส่วนนี้',6000); refreshAfterPull(true); return; }
+    outboxSave(ops);
+    setCloudStatus('err',failed.message||'ซิงก์ไม่สำเร็จ');
+    if(failed.code==='NETWORK'||failed.code==='ERROR'){ AUTH.retry=Math.min(AUTH.retry+1,6); AUTH.timer=setTimeout(cloudPush,4000*AUTH.retry); }
+    else alertToast('เซิร์ฟเวอร์ไม่รับข้อมูล: '+(failed.message||''),5000);
+    return;
+  }
+  AUTH.retry=0; AUTH.baseFlat=cur; outboxClear(); setCloudStatus('ok');
+  if(merged) await cloudPull(true);
+  if(AUTH.again){ AUTH.again=false; cloudPush(); }
+}
+async function cloudPull(force){
+  if(!AUTH.session||!AUTH.entered||AUTH.syncing||AUTH.pulling) return;
+  if(!force && AUTH.timer) return;      // มีงานที่ยังไม่ได้ส่ง: ส่งก่อนแล้วค่อยดึง
+  AUTH.pulling=true;
+  try{
+    const r = await cloudApi('getData',{sinceRev:force?undefined:AUTH.rev});
+    if(!r.ok) return;
+    if(typeof r.pending==='number') setAdminBadge(r.pending);
+    if(r.unchanged) return;
+    const oldBase=AUTH.baseFlat, newBase=syncFlatten(r.data);
+    const serverOps=syncDiffFlat(oldBase,newBase);
+    const mineKeys=new Set(syncDiffFlat(oldBase,syncFlatten(DATA)).map(o=>o.k));
+    // นำสิ่งที่ครูท่านอื่นแก้มาใส่ (คงอ็อบเจ็กต์เดิมไว้) โดยไม่ทับสิ่งที่เราแก้ค้างอยู่
+    syncApplyOps(DATA, serverOps.filter(o=>!mineKeys.has(o.k)));
+    AUTH.baseFlat=newBase; AUTH.rev=r.rev;
+    if(mineKeys.size) cloudSave();
+    if(serverOps.length) refreshAfterPull();
+  } finally { AUTH.pulling=false; }
+}
+function refreshAfterPull(silent){
+  updateSchoolTag();
+  const el=document.querySelector('.screen.active'), name=el?el.id.replace('screen-',''):'';
+  if(name==='dashboard') renderDashboard();
+  else if(silent) return;
+  else if(!AUTH.toastedPull){ AUTH.toastedPull=true; alertToast('มีข้อมูลอัปเดตจากครูท่านอื่น (จะแสดงเมื่อเปิดหน้านั้นใหม่)',4000); setTimeout(()=>{AUTH.toastedPull=false;},60000); }
+}
+function startPolling(){ stopPolling(); AUTH.poll=setInterval(()=>cloudPull(false),CLOUD.pollMs); }
+function stopPolling(){ if(AUTH.poll){ clearInterval(AUTH.poll); AUTH.poll=null; } }
+
+/* งานที่ยังไม่ได้ส่ง (เช่น ปิดแท็บตอนออฟไลน์) เก็บไว้ในเครื่องแล้วส่งให้หลังเข้าสู่ระบบใหม่ */
+function outboxSave(ops){
+  try{
+    if(!ops||!ops.length){ localStorage.removeItem('tls-outbox'); return; }
+    localStorage.setItem('tls-outbox',JSON.stringify({email:AUTH.user&&AUTH.user.email,ops:ops,at:Date.now()}));
+  }catch(e){}
+}
+function outboxClear(){ try{ localStorage.removeItem('tls-outbox'); }catch(e){} }
+function outboxRecover(){
+  try{
+    const o=JSON.parse(localStorage.getItem('tls-outbox')||'null');
+    if(!o||!o.ops||!o.ops.length||!AUTH.user||o.email!==AUTH.user.email) return;
+    const okOps = AUTH.role==='admin' ? o.ops : o.ops.filter(teacherAllowedOp);
+    syncApplyOps(DATA,okOps); outboxClear(); cloudSave();
+    setTimeout(()=>alertToast('กู้คืนงานที่ยังไม่ได้ซิงก์จากครั้งก่อนแล้ว ('+okOps.length+' รายการ)',5000),300);
+  }catch(e){}
+}
+function dirtyOps(){ return (AUTH.entered && (AUTH.timer||AUTH.syncing||AUTH.again)) ? syncDiffFlat(AUTH.baseFlat,syncFlatten(DATA)) : []; }
+window.addEventListener('beforeunload',e=>{ if(!cloudOn()) return; const ops=dirtyOps(); if(ops.length){ outboxSave(ops); e.preventDefault(); e.returnValue=''; } });
+document.addEventListener('visibilitychange',()=>{
+  if(!cloudOn()||!AUTH.entered) return;
+  if(document.hidden){ const ops=dirtyOps(); if(ops.length){ outboxSave(ops); if(AUTH.timer){ clearTimeout(AUTH.timer); cloudPush(); } } }
+  else cloudPull(false);
+});
+
+/* ---------- ส่วนแสดงผลตามสิทธิ์ ---------- */
+function applyRoleUI(){
+  const u=AUTH.user||{}, isAdmin=AUTH.role==='admin';
+  document.body.classList.toggle('role-teacher',!isAdmin);
+  document.body.classList.toggle('role-admin',isAdmin);
+  const chip=document.getElementById('userChip');
+  chip.style.display='block';
+  chip.innerHTML='👤 '+cEsc(u.name||'')+(isAdmin?' (ผู้ดูแล)':' (ครู)')+'<br>'+cEsc(u.email||'')+'<br><a id="chipOut">ออกจากระบบ</a>';
+  document.getElementById('chipOut').onclick=cloudLogout;
+  document.querySelectorAll('.admin-only').forEach(el=>{ el.style.display = isAdmin ? '' : 'none'; });
+  // ครู: หน้า "โรงเรียน/ชั้นเรียน" เหลือเฉพาะข้อมูลบัญชีของตัวเอง
+  const navSet=document.querySelector('.nav-item[data-screen=settings]');
+  if(navSet) navSet.innerHTML = isAdmin ? '<span class="nav-icon">🏫</span> โรงเรียน / ชั้นเรียน' : '<span class="nav-icon">👤</span> บัญชีของฉัน';
+  const lbl=navSet && navSet.previousElementSibling; if(lbl && lbl.classList.contains('nav-group-label')) lbl.textContent = isAdmin ? 'ข้อมูล' : 'บัญชี';
+  NAV_TITLES.settings = isAdmin ? 'โรงเรียน / ชั้นเรียน' : 'บัญชีของฉัน';
+  const st=document.querySelector('#screen-settings .page-title'), sd=document.querySelector('#screen-settings .page-desc');
+  if(st) st.textContent = isAdmin ? 'ข้อมูลโรงเรียน / ชั้นเรียน' : 'บัญชีของฉัน';
+  if(sd) sd.style.display = isAdmin ? '' : 'none';
+  const card=document.getElementById('accountCard'); card.style.display='block';
+  const perms = isAdmin
+    ? 'สิทธิ์ของคุณ: ทำได้ทุกอย่าง — จัดการนักเรียน/ชั้นเรียน/โรงเรียน, นำเข้าข้อมูล, สำรองและกู้คืนข้อมูล, อนุมัติผู้ใช้, ประเมิน, ส่งออก PDF, พิมพ์รายงาน'
+    : 'สิทธิ์ของคุณ: ประเมินนักเรียน, ส่งออก PDF และพิมพ์รายงาน (ดูข้อมูลทั้งโรงเรียนได้) — การเพิ่ม/แก้/ลบนักเรียนและชั้นเรียน นำเข้าข้อมูล และสำรองข้อมูล ทำได้เฉพาะผู้ดูแลระบบ';
+  document.getElementById('accountBody').innerHTML='<div class="adm-row"><div class="who"><b>'+cEsc(u.name||'')+(isAdmin?' · ผู้ดูแลระบบ':' · ครูผู้ใช้งาน')+'</b><span>'+cEsc(u.email||'')+'</span></div><div class="adm-actions">'+
+    (isAdmin?'<button class="btn btn-primary btn-sm" id="acctAdmin">👑 เปิดหน้าผู้ดูแลระบบ<span class="adm-badge" id="admBadge2"></span></button>':'')+
+    '<button class="btn btn-outline btn-sm" id="acctOut">ออกจากระบบ</button></div></div>'+
+    '<p style="font-size:var(--fs-sm);margin:10px 0 0">'+cEsc(perms)+'</p>'+
+    '<p style="font-size:var(--fs-xs);color:var(--muted);margin:6px 0 0">ข้อมูลทั้งหมดเก็บไว้ที่ระบบกลางของโรงเรียน ครูทุกคนที่ได้รับอนุมัติเห็นข้อมูลชุดเดียวกัน</p>';
+  document.getElementById('acctOut').onclick=cloudLogout;
+  const a=document.getElementById('acctAdmin'); if(a) a.onclick=()=>showScreen('admin');
+}
+function setAdminBadge(n){
+  ['admBadge','admBadge2'].forEach(id=>{ const el=document.getElementById(id); if(!el) return; el.textContent=n; el.style.display=n>0?'inline-block':'none'; });
+  if(n>0 && !AUTH.announcedPending){ AUTH.announcedPending=true; alertToast('มีคำขอลงทะเบียนรออนุมัติ '+n+' รายการ (เมนู ผู้ดูแลระบบ)',5000); }
+}
+function localLegacyData(){
+  try{ const o=JSON.parse(localStorage.getItem(STORAGE_KEY)||'null'); return (o&&Array.isArray(o.students)&&o.students.length)?o:null; }catch(e){ return null; }
+}
+function maybeAnnounceLocalData(){
+  if(DATA.students.length===0 && DATA.classes.length===0 && localLegacyData()) setTimeout(()=>alertToast('พบข้อมูลเดิมในเครื่องนี้ — ไปที่ ผู้ดูแลระบบ เพื่อนำขึ้นระบบกลาง',6000),600);
+}
+
+/* ---------- หน้าผู้ดูแลระบบ ---------- */
+const STATUS_TH = {pending:'รออนุมัติ',approved:'ใช้งานได้',rejected:'ไม่อนุมัติ',blocked:'ถูกระงับ'};
+async function renderAdmin(){
+  if(!cloudOn()||AUTH.role!=='admin'){ alertToast('หน้านี้สำหรับผู้ดูแลระบบเท่านั้น'); showScreen('dashboard'); return; }
+  const box=document.getElementById('adminBody');
+  box.innerHTML='<div class="card"><div class="adm-empty">กำลังโหลด…</div></div>';
+  const r=await cloudApi('listAdmin',{});
+  if(!r.ok){ box.innerHTML='<div class="card"><div class="auth-msg">'+cEsc(r.message||'โหลดไม่สำเร็จ')+'</div></div>'; return; }
+  AUTH.admin=r;
+  setAdminBadge(r.users.filter(u=>u.status==='pending').length);
+  box.innerHTML = adminPendingHTML(r)+adminBackupHTML(r)+adminUsersHTML(r)+adminLogHTML(r)+adminLocalHTML(r);
+}
+function adminPendingHTML(r){
+  const p=r.users.filter(u=>u.status==='pending');
+  return '<div class="card"><h3>คำขอลงทะเบียนรออนุมัติ '+(p.length?'('+p.length+')':'')+'</h3>'+
+    (p.length?p.map(u=>'<div class="adm-row"><div class="who"><b>'+cEsc(u.name)+'</b><span>'+cEsc(u.email)+' · ขอเมื่อ '+cTime(u.requestedAt)+(u.note?'<br>หมายเหตุ: '+cEsc(u.note):'')+'</span></div>'+
+      '<div class="adm-actions"><button class="btn btn-primary btn-sm" data-act="approve" data-email="'+cEsc(u.email)+'">✅ อนุมัติ</button><button class="btn btn-outline btn-sm" data-act="reject" data-email="'+cEsc(u.email)+'">ปฏิเสธ</button></div></div>').join(''):'<div class="adm-empty">ไม่มีคำขอที่รออนุมัติ</div>')+'</div>';
+}
+function adminUsersHTML(r){
+  const rows=r.users.filter(u=>u.status!=='pending');
+  return '<div class="card"><h3>ผู้ใช้งานในระบบ</h3>'+(rows.length?rows.map(u=>{
+    const admin=u.role==='admin';
+    const acts = admin ? '' :
+      (u.status==='approved'?'<button class="btn btn-outline btn-sm" data-act="block" data-email="'+cEsc(u.email)+'">ระงับสิทธิ์</button>':'<button class="btn btn-outline btn-sm" data-act="approve" data-email="'+cEsc(u.email)+'">คืนสิทธิ์</button>')+
+      '<button class="btn btn-outline btn-sm" data-act="remove" data-email="'+cEsc(u.email)+'">ลบ</button>';
+    return '<div class="adm-row"><div class="who"><b>'+cEsc(u.name)+(admin?' · ผู้ดูแลระบบ':'')+'</b><span>'+cEsc(u.email)+' · '+(STATUS_TH[u.status]||u.status)+' · เข้าล่าสุด '+cTime(u.lastLogin)+'</span></div><div class="adm-actions">'+acts+'</div></div>';
+  }).join(''):'<div class="adm-empty">ยังไม่มีผู้ใช้</div>')+'</div>';
+}
+function adminBackupHTML(r){
+  const s=r.summary, c=s.counts||{};
+  const kindTh={manual:'ยืนยันโดยแอดมิน',auto:'อัตโนมัติก่อนลบ','pre-restore':'ก่อนกู้คืน'};
+  return '<div class="card"><h3>ตรวจสอบและสำรองข้อมูล</h3>'+
+    '<div class="adm-stats"><div><b>'+(c.students||0)+'</b>นักเรียน</div><div><b>'+(c.classes||0)+'</b>ชั้นเรียน</div><div><b>'+(c.answers||0)+'</b>ผลการตอบ</div></div>'+
+    '<p style="font-size:var(--fs-sm);color:var(--muted);margin:0 0 10px">แก้ไขล่าสุด: '+cTime(s.updatedAt)+(s.updatedBy?' โดย '+cEsc(s.updatedBy):'')+' (ครั้งที่ '+s.rev+')<br>ตรวจดูประวัติด้านล่างจนมั่นใจว่าข้อมูลถูกต้อง แล้วกดยืนยันเพื่อเก็บสำเนาไว้อีกไฟล์ใน Drive</p>'+
+    '<div class="field"><label>หมายเหตุสำเนา (ไม่บังคับ)</label><input type="text" id="bkNote" maxlength="200" placeholder="เช่น หลังคัดกรองรอบก่อนเรียนเสร็จ"></div>'+
+    '<button class="btn btn-primary" data-act="backup">✅ ตรวจสอบแล้ว ยืนยันสำรองข้อมูล</button>'+
+    '<h3 style="margin-top:18px;font-size:var(--fs-md)">ไฟล์สำรองที่มี</h3>'+
+    (r.backups.length?r.backups.map(b=>{ const bc=b.counts||{}; return '<div class="adm-row"><div class="who"><b>'+cTime(b.createdAt)+' · '+(kindTh[b.kind]||'สำรอง')+'</b><span>'+(bc.students!=null?bc.students+' นักเรียน · '+bc.classes+' ชั้นเรียน · '+bc.answers+' ผลการตอบ':'')+(b.by?' · โดย '+cEsc(b.by):'')+(b.label?'<br>'+cEsc(b.label):'')+'</span></div>'+
+      '<div class="adm-actions"><button class="btn btn-outline btn-sm" data-act="restore" data-id="'+cEsc(b.id)+'" data-when="'+cEsc(cTime(b.createdAt))+'">กู้คืน</button></div></div>'; }).join(''):'<div class="adm-empty">ยังไม่มีไฟล์สำรอง</div>')+'</div>';
+}
+function adminLogHTML(r){
+  return '<div class="card"><h3>ประวัติการแก้ไขล่าสุด</h3>'+(r.log.length?r.log.map(l=>{
+    if(l.restored) return '<div class="adm-row"><div class="who"><b>กู้คืนข้อมูลจากไฟล์สำรอง</b><span>'+cTime(l.at)+' · '+cEsc(l.by)+' · '+cEsc(l.restored)+'</span></div></div>';
+    const bits=[]; if(l.addStudents) bits.push('เพิ่มนักเรียน '+l.addStudents); if(l.delStudents) bits.push('ลบนักเรียน '+l.delStudents); if(l.addClasses) bits.push('เพิ่มชั้น '+l.addClasses); if(l.delClasses) bits.push('ลบชั้น '+l.delClasses); if(l.delAnswers) bits.push('ลบผลการตอบ '+l.delAnswers);
+    const warn=(l.delStudents>=3||l.delClasses>=1||l.delAnswers>=50);
+    return '<div class="adm-row"><div class="who"><b class="'+(warn?'adm-warn':'')+'">'+(warn?'⚠ ':'')+cEsc(l.name||l.by)+' แก้ไข '+l.ops+' รายการ'+(bits.length?' ('+bits.join(', ')+')':'')+'</b><span>'+cTime(l.at)+' · '+cEsc(l.by)+' · ครั้งที่ '+l.rev+'</span></div></div>';
+  }).join(''):'<div class="adm-empty">ยังไม่มีการแก้ไข</div>')+'</div>';
+}
+function adminLocalHTML(r){
+  const old=localLegacyData(); if(!old || (r.summary.counts.students||0)>0) return '';
+  return '<div class="card"><h3>นำข้อมูลเดิมในเครื่องนี้ขึ้นระบบกลาง</h3><p style="font-size:var(--fs-sm);color:var(--muted)">พบข้อมูลที่เคยบันทึกไว้ในเบราว์เซอร์เครื่องนี้ ('+old.students.length+' นักเรียน, '+(old.classes||[]).length+' ชั้นเรียน) ระบบกลางยังว่างอยู่ จึงนำขึ้นได้ (ข้อมูลเดิมในเครื่องจะยังอยู่ ไม่ถูกลบ)</p><button class="btn btn-primary" data-act="migrate">⬆️ นำข้อมูลเดิมขึ้นระบบกลาง</button></div>';
+}
+async function adminAction(btn){
+  const act=btn.dataset.act, email=btn.dataset.email;
+  const setStatus=async(status)=>{ const r=await cloudApi('setUserStatus',{email:email,status:status}); if(!r.ok) alertToast(r.message||'ไม่สำเร็จ'); renderAdmin(); };
+  if(act==='approve') return setStatus('approved');
+  if(act==='reject') return setStatus('rejected');
+  if(act==='block') return confirmDialog('ระงับสิทธิ์ผู้ใช้','ผู้ใช้ '+email+' จะเข้าใช้งานไม่ได้ทันที และขอลงทะเบียนใหม่ไม่ได้ ดำเนินการต่อหรือไม่?',()=>setStatus('blocked'));
+  if(act==='remove') return confirmDialog('ลบผู้ใช้','ลบ '+email+' ออกจากรายชื่อ (ผู้ใช้ขอลงทะเบียนใหม่ได้) ดำเนินการต่อหรือไม่?',()=>setStatus('remove'));
+  if(act==='backup'){
+    btn.disabled=true;
+    const r=await cloudApi('makeBackup',{note:(document.getElementById('bkNote')||{}).value||''});
+    if(!r.ok){ btn.disabled=false; return alertToast(r.message||'สำรองไม่สำเร็จ'); }
+    alertToast('สำรองข้อมูลแล้ว: '+r.name,4000); return renderAdmin();
+  }
+  if(act==='restore') return confirmDialog('กู้คืนข้อมูลจากไฟล์สำรอง','ข้อมูลปัจจุบันของทั้งโรงเรียนจะถูกแทนที่ด้วยไฟล์สำรองเมื่อ '+btn.dataset.when+' (ระบบเก็บสำเนาข้อมูลปัจจุบันไว้ให้ก่อน) ดำเนินการต่อหรือไม่?',async()=>{
+    const r=await cloudApi('restoreBackup',{backupId:btn.dataset.id});
+    if(!r.ok) return alertToast(r.message||'กู้คืนไม่สำเร็จ');
+    await cloudPull(true); alertToast('กู้คืนข้อมูลเรียบร้อย',4000); renderAdmin();
+  });
+  if(act==='migrate') return cloudMigrateLocal();
+}
+function cloudMigrateLocal(){
+  const old=localLegacyData(); if(!old) return;
+  const keep=DATA;
+  DATA={school:old.school||{name:'',year:''},classes:old.classes||[],students:old.students||[],results:old.results||{}};
+  DATA.students.forEach(s=>getResult(s.id,'pre'));          // แปลงรูปแบบข้อมูลรุ่นเก่า (ถ้ามี) ให้เป็น pre/post
+  const mine=DATA; DATA=keep;
+  syncApplyOps(DATA, syncDiffFlat({},syncFlatten(mine)));
+  updateSchoolTag(); cloudSave();
+  alertToast('กำลังนำข้อมูลเดิม '+mine.students.length+' นักเรียนขึ้นระบบกลาง…',4000);
+  setTimeout(renderAdmin,2500);
+}
+document.getElementById('adminBody').addEventListener('click',e=>{ const b=e.target.closest('[data-act]'); if(b) adminAction(b); });
+
+
 
 function exportBackup(){
+  if(denyIfNotAdmin('ดาวน์โหลดข้อมูลสำรอง')) return;
   const json=JSON.stringify(DATA,null,2);
   const blob=new Blob([json],{type:'application/json'});
   const url=URL.createObjectURL(blob);
@@ -847,6 +1365,7 @@ function exportBackup(){
   setTimeout(()=>URL.revokeObjectURL(url),1000);
 }
 function importBackup(file){
+  if(denyIfNotAdmin('นำเข้าข้อมูลสำรอง')) return;
   const reader=new FileReader();
   reader.onload=async (e)=>{
     try{
@@ -879,6 +1398,7 @@ function findCol(headerRow, keyword){
   return -1;
 }
 async function importRoster(file){
+  if(denyIfNotAdmin('นำเข้ารายชื่อนักเรียน')) return;
   if(typeof XLSX==='undefined'){
     alertToast('ไม่สามารถโหลดไลบรารีอ่านไฟล์ Excel ได้ (ต้องมีอินเทอร์เน็ต) กรุณาลองใหม่อีกครั้ง',5000);
     return;
@@ -1004,7 +1524,7 @@ function evaluateStudent(sid,round){
 }
 
 /* ============================= NAV ============================= */
-const NAV_TITLES={dashboard:'แดชบอร์ด',settings:'โรงเรียน / ชั้นเรียน',students:'รายชื่อนักเรียน',assess:'คัดกรองนักเรียน',reportStudent:'รายงานรายบุคคล',reportClass:'รายงานรายชั้น',reportSchool:'รายงานภาพรวมโรงเรียน',reportRemedial:'กลุ่มที่ต้องซ่อมเสริม'};
+const NAV_TITLES={admin:'ผู้ดูแลระบบ',dashboard:'แดชบอร์ด',settings:'โรงเรียน / ชั้นเรียน',students:'รายชื่อนักเรียน',assess:'คัดกรองนักเรียน',reportStudent:'รายงานรายบุคคล',reportClass:'รายงานรายชั้น',reportSchool:'รายงานภาพรวมโรงเรียน',reportRemedial:'กลุ่มที่ต้องซ่อมเสริม'};
 const REPORT_SCREENS=['reportStudent','reportClass','reportSchool','reportRemedial'];
 document.querySelectorAll('.nav-item[data-screen]').forEach(el=>{
   el.addEventListener('click',()=>showScreen(el.dataset.screen));
@@ -1016,6 +1536,7 @@ document.querySelectorAll('.rst-item[data-screen]').forEach(el=>{
   el.addEventListener('click',()=>showScreen(el.dataset.screen));
 });
 function showScreen(name){
+  name=guardScreen(name);
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.getElementById('screen-'+name).classList.add('active');
   document.querySelectorAll('.nav-item[data-screen]').forEach(el=>el.classList.toggle('active',el.dataset.screen===name));
@@ -1027,6 +1548,7 @@ function showScreen(name){
   window.scrollTo({top:0});
   if(name==='dashboard') renderDashboard();
   if(name==='settings') renderSettings();
+  if(name==='admin') renderAdmin();
   if(name==='students') renderStudents();
   if(name==='assess') renderAssessSelectors();
   if(name==='reportStudent') renderReportStudentSelectors();
@@ -1079,17 +1601,20 @@ function renderSettings(){
   tbody.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
     const cid=b.dataset.del;
     confirmDialog('ลบชั้นเรียน','การลบชั้นเรียนจะไม่ลบนักเรียนที่อยู่ในชั้นนี้ แต่นักเรียนจะไม่มีชั้นเรียน ต้องการลบหรือไม่?',()=>{
+      if(denyIfNotAdmin('ลบชั้นเรียน')) return;
       DATA.classes=DATA.classes.filter(c=>c.id!==cid); saveData(); renderSettings();
     });
   }));
 }
 document.getElementById('saveSchoolBtn').addEventListener('click',()=>{
+  if(denyIfNotAdmin('แก้ข้อมูลโรงเรียน')) return;
   DATA.school.name=document.getElementById('schoolNameInput').value.trim();
   DATA.school.year=document.getElementById('schoolYearInput').value.trim();
   saveData(); updateSchoolTag();
   alertToast('บันทึกข้อมูลโรงเรียนแล้ว');
 });
 document.getElementById('addClassBtn').addEventListener('click',()=>{
+  if(denyIfNotAdmin('เพิ่มชั้นเรียน')) return;
   const grade=document.getElementById('newClassGrade').value;
   const room=document.getElementById('newClassRoom').value;
   if(!grade||!room){ alertToast('กรุณาเลือกระดับชั้นและห้อง'); return; }
@@ -1171,6 +1696,7 @@ function renderStudentTable(){
     root.querySelectorAll('[data-del]').forEach(b=>b.addEventListener('click',()=>{
       const sid=b.dataset.del;
       confirmDialog('ลบนักเรียน','ต้องการลบนักเรียนคนนี้และผลการประเมินทั้งหมดหรือไม่?',()=>{
+        if(denyIfNotAdmin('ลบนักเรียน')) return;
         DATA.students=DATA.students.filter(s=>s.id!==sid); delete DATA.results[sid]; saveData(); renderStudentTable();
       });
     }));
@@ -1218,6 +1744,7 @@ function resetStudentForm(){
   document.getElementById('cancelEditStudentBtn').style.display='none';
 }
 document.getElementById('saveStudentBtn').addEventListener('click',()=>{
+  if(denyIfNotAdmin('เพิ่ม/แก้ไขข้อมูลนักเรียน')) return;
   const name=document.getElementById('stuName').value.trim();
   if(!name){ alertToast('กรุณากรอกชื่อนักเรียน'); return; }
   const grade=document.getElementById('stuGrade').value;
@@ -1257,6 +1784,7 @@ document.getElementById('deleteAssessBtn').addEventListener('click',()=>{
   if(!sid){ alertToast('กรุณาเลือกนักเรียนก่อน'); return; }
   const s=DATA.students.find(x=>x.id===sid);
   confirmDialog('ลบผลการประเมิน',`ต้องการลบผลการประเมินรอบ "${ROUND_LABELS[round]}" ของ ${s?s.name:''} ทั้งหมดหรือไม่? การลบนี้ไม่สามารถย้อนกลับได้`,()=>{
+    if(denyIfNotAdmin('ลบผลการประเมิน')) return;
     if(DATA.results[sid]) DATA.results[sid][round]={};
     saveData(); renderAssessArea();
     alertToast('ลบผลการประเมินแล้ว');
@@ -1952,6 +2480,7 @@ document.getElementById('rosterImportFile').addEventListener('change',(e)=>{
   DATA.students = DATA.students||[];
   DATA.results = DATA.results||{};
   updateSchoolTag();
+  if(cloudOn()){ await cloudInit(); return; }   // โหมดคลาวด์: ต้องเข้าสู่ระบบก่อนจึงจะเห็น/แก้ข้อมูล
   // report initial persistence state; do one save so status reflects reality (and creates the key if missing)
   const okAtStart = await saveData();
   if(!okAtStart){
