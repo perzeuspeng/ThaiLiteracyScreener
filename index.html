@@ -289,6 +289,20 @@ canvas{max-width:100%;height:auto;}
 .adm-warn{color:#b3391f;font-weight:700;}
 .adm-empty{color:var(--muted);font-size:var(--fs-sm);padding:6px 0;}
 body.role-teacher .perm-admin{display:none !important;}
+#userBar{display:none;position:fixed;top:12px;right:18px;z-index:70;background:#fff;border:1px solid var(--border);border-radius:999px;padding:5px 6px 5px 14px;align-items:center;gap:10px;font-size:var(--fs-sm);box-shadow:0 4px 14px rgba(22,34,74,.12);max-width:60vw;}
+#userBar #userBarName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--navy-dark);font-weight:700;}
+body.cloud-user #userBar{display:flex;}
+#userMenu{display:none;position:fixed;top:64px;right:12px;z-index:80;background:#fff;border:1px solid var(--border);border-radius:14px;padding:12px 14px;box-shadow:0 10px 30px rgba(22,34,74,.25);font-size:var(--fs-sm);min-width:210px;}
+#userMenu.open{display:block;}
+#userMenu span{color:var(--muted);font-size:var(--fs-xs);word-break:break-all;}
+#userMenu .btn{margin-top:10px;width:100%;}
+@media (max-width:900px){ #userBar{display:none !important;} }
+@media (min-width:901px){ #userMenu{display:none !important;} }
+.auth-alt{font-size:var(--fs-xs);color:var(--muted);margin:6px 0 4px;}
+.auth-alt .btn{margin:4px 0 0;}
+.auth-tips{text-align:left;font-size:var(--fs-xs);color:var(--muted);margin:10px 0;}
+.auth-tips summary{cursor:pointer;color:var(--navy);font-weight:700;text-align:center;}
+.auth-tips ul{margin:8px 0 0 18px;padding:0;line-height:1.6;}
 </style>
 </head>
 <body>
@@ -892,7 +906,7 @@ const CLOUD = {
   pollMs:    45000    // ตรวจข้อมูลใหม่จากครูท่านอื่นทุกกี่มิลลิวินาที
 };
 const cloudOn = () => !!(CLOUD.clientId && CLOUD.scriptUrl);
-const AUTH = {session:null,user:null,role:null,idToken:null,rev:0,baseFlat:{},timer:null,syncing:false,pulling:false,again:false,retry:0,entered:false,poll:null,admin:null};
+const AUTH = {session:null,user:null,role:null,cred:null,tokenClient:null,rev:0,baseFlat:{},timer:null,syncing:false,pulling:false,again:false,retry:0,entered:false,poll:null,admin:null};
 
 /* ---------- SHARED:SYNC-CORE (ใช้ร่วมกันทั้งหน้าเว็บและ Apps Script — ห้ามแก้แยกกัน) ---------- */
 // แปลงข้อมูลทั้งก้อนเป็นตารางแบน "คีย์ -> ค่า(JSON)" เพื่อเทียบว่าอะไรเปลี่ยน แล้วส่งเฉพาะส่วนที่เปลี่ยน (ops)
@@ -1004,9 +1018,39 @@ function authError(msg,retry){
 function authWho(u){ return '<div class="auth-who">'+(u&&u.picture?'<img src="'+cEsc(u.picture)+'" alt="">':'')+'<div><b>'+cEsc((u&&u.name)||'')+'</b><br><span style="color:var(--muted)">'+cEsc((u&&u.email)||'')+'</span></div></div>'; }
 function authSignIn(msg){
   authShow('<div class="auth-logo">📘</div><h1>Thai Literacy Screener</h1><p>ระบบคัดกรองพัฒนาการพูด อ่าน เขียนภาษาไทย<br>สำหรับครูในโรงเรียน เข้าสู่ระบบด้วยบัญชี Google</p>'+
-    (msg?'<div class="auth-msg">'+cEsc(msg)+'</div>':'')+'<div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0;min-height:44px;"></div>'+
+    (msg?'<div class="auth-msg">'+cEsc(msg)+'</div>':'')+'<div id="gsiBtn" style="display:flex;justify-content:center;margin:18px 0 8px;min-height:44px;"></div>'+
+    '<div class="auth-alt"><span>กดแล้วหน้าต่างเลือกบัญชีไม่ขึ้น?</span> <button class="btn btn-outline btn-sm" id="authAltBtn">เข้าสู่ระบบด้วยวิธีสำรอง</button></div>'+
+    '<details class="auth-tips"><summary>วิธีแก้เมื่อหน้าต่างเลือกบัญชีไม่ขึ้น</summary><ul>'+
+    '<li>ดูที่แถบที่อยู่ของเบราว์เซอร์ ถ้ามีไอคอนบล็อกป๊อปอัป ให้กดแล้วเลือก "อนุญาตป๊อปอัปจากเว็บนี้"</li>'+
+    '<li>ปิดส่วนขยายบล็อกโฆษณา/ความเป็นส่วนตัว (เช่น uBlock, AdGuard, Privacy Badger) สำหรับเว็บนี้ หรือลองเปิดในหน้าต่างไม่ระบุตัวตน</li>'+
+    '<li>ถ้าใช้ Chrome: ตั้งค่า → ความเป็นส่วนตัวและความปลอดภัย → การตั้งค่าไซต์ → เปิดให้ "ลงชื่อเข้าใช้ของบุคคลที่สาม" ทำงานได้</li>'+
+    '<li>รีเฟรชหน้าแรงๆ (Ctrl+Shift+R) แล้วลองอีกครั้ง หรือกดปุ่มวิธีสำรองด้านบน</li></ul></details>'+
     '<p style="font-size:var(--fs-xs)">ยังไม่เคยใช้งาน? เข้าสู่ระบบด้วย Google ก่อน แล้วระบบจะให้กรอกคำขอลงทะเบียนส่งถึงผู้ดูแล</p>');
-  try{ google.accounts.id.renderButton(document.getElementById('gsiBtn'),{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',locale:'th',width:260}); }catch(e){ authError('แสดงปุ่ม Google ไม่ได้: '+e.message); }
+  try{ google.accounts.id.renderButton(document.getElementById('gsiBtn'),{theme:'filled_blue',size:'large',text:'signin_with',shape:'pill',locale:'th',width:260}); }catch(e){ authError('แสดงปุ่ม Google ไม่ได้: '+e.message); return; }
+  document.getElementById('authAltBtn').onclick = authBackupLogin;
+}
+// วิธีสำรอง: เปิดหน้าต่างเลือกบัญชีของ Google จากปุ่มของเราเอง (ไม่ผ่านปุ่มสำเร็จรูป) และบอกสาเหตุเมื่อเปิดไม่ได้
+function authBackupLogin(){
+  try{
+    if(!AUTH.tokenClient){
+      AUTH.tokenClient = google.accounts.oauth2.initTokenClient({
+        client_id: CLOUD.clientId, scope: 'openid email profile',
+        callback: async (resp) => {
+          if(!resp || resp.error || !resp.access_token) return authSignIn('เข้าสู่ระบบไม่สำเร็จ'+(resp&&resp.error?' ('+resp.error+')':'')+' กรุณาลองใหม่');
+          AUTH.cred = {accessToken: resp.access_token};
+          authLoading('กำลังตรวจสอบสิทธิ์…');
+          await cloudLoginWithToken();
+        },
+        error_callback: (err) => {
+          const t = err && err.type;
+          authSignIn(t==='popup_failed_to_open' ? 'เบราว์เซอร์บล็อกหน้าต่างป๊อปอัป — กดไอคอนบล็อกที่แถบที่อยู่แล้วเลือก "อนุญาต" จากนั้นกดวิธีสำรองอีกครั้ง'
+                   : t==='popup_closed' ? 'ปิดหน้าต่างเลือกบัญชีก่อนเสร็จ กรุณาลองใหม่'
+                   : 'เปิดหน้าต่าง Google ไม่ได้ กรุณาลองใหม่หรือดูวิธีแก้ด้านล่าง');
+        }
+      });
+    }
+    AUTH.tokenClient.requestAccessToken({prompt:'select_account'});
+  }catch(e){ authSignIn('เปิดหน้าต่าง Google ไม่ได้: '+e.message); }
 }
 function authRegister(u){
   authShow('<div class="auth-logo">📝</div><h1>ขอลงทะเบียนใช้งาน</h1>'+authWho(u)+
@@ -1019,7 +1063,7 @@ function authRegister(u){
     const name=document.getElementById('regName').value.trim(), note=document.getElementById('regNote').value.trim();
     if(name.length<2){ document.getElementById('regMsg').innerHTML='<div class="auth-msg">กรุณากรอกชื่อ-นามสกุลให้ครบถ้วน</div>'; return; }
     document.getElementById('regSubmit').disabled=true;
-    const r = await cloudApi('register',{idToken:AUTH.idToken,fullName:name,note:note});
+    const r = await cloudApi('register',Object.assign({fullName:name,note:note},AUTH.cred||{}));
     if(!r.ok){ document.getElementById('regSubmit').disabled=false; document.getElementById('regMsg').innerHTML='<div class="auth-msg">'+cEsc(r.message||'ส่งคำขอไม่สำเร็จ')+'</div>'; return; }
     if(r.status==='approved') return cloudLoginWithToken();
     authPending(r.user||u, r.mailed===false);
@@ -1052,12 +1096,12 @@ function loadGsi(){
   });
 }
 async function onGoogleCredential(resp){
-  AUTH.idToken = resp && resp.credential;
+  AUTH.cred = {idToken: resp && resp.credential};
   authLoading('กำลังตรวจสอบสิทธิ์…');
   await cloudLoginWithToken();
 }
 async function cloudLoginWithToken(){
-  const r = await cloudApi('login',{idToken:AUTH.idToken});
+  const r = await cloudApi('login',Object.assign({},AUTH.cred||{}));
   if(!r.ok) return authSignIn(r.code==='AUTH' ? 'การเข้าสู่ระบบหมดอายุ กรุณากดเข้าสู่ระบบอีกครั้ง' : (r.message||'เข้าสู่ระบบไม่สำเร็จ'));
   AUTH.user = r.user;
   if(r.status==='approved'){
@@ -1073,7 +1117,8 @@ async function cloudInit(){
   authLoading('กำลังเตรียมระบบ…');
   try{
     await loadGsi();
-    google.accounts.id.initialize({client_id:CLOUD.clientId,callback:onGoogleCredential,auto_select:true,cancel_on_tap_outside:false});
+    // ไม่ใช้ One Tap/auto_select (เป็นจุดที่ทำให้หน้าต่างเลือกบัญชีค้าง/ช้าบน PC) ใช้ปุ่มกดอย่างเดียว ซึ่งคาดเดาได้กว่า
+    google.accounts.id.initialize({client_id:CLOUD.clientId,callback:onGoogleCredential,ux_mode:'popup',cancel_on_tap_outside:false,itp_support:true});
   }catch(e){ return authError(e.message); }
   let saved=null; try{ saved=JSON.parse(localStorage.getItem('tls-session')||'null'); }catch(e){}
   if(saved && saved.session){
@@ -1083,7 +1128,6 @@ async function cloudInit(){
     try{ localStorage.removeItem('tls-session'); }catch(e){}
   }
   authSignIn();
-  try{ google.accounts.id.prompt(); }catch(e){}
 }
 async function cloudEnter(resume){
   authLoading('กำลังโหลดข้อมูลโรงเรียน…');
@@ -1226,8 +1270,26 @@ document.addEventListener('visibilitychange',()=>{
 });
 
 /* ---------- ส่วนแสดงผลตามสิทธิ์ ---------- */
+function ensureUserBar(){
+  if(document.getElementById('userBar')) return;
+  const bar=document.createElement('div'); bar.id='userBar'; bar.className='no-print';
+  bar.innerHTML='<span id="userBarName"></span><button id="userBarOut" class="btn btn-outline btn-sm">ออกจากระบบ</button>';
+  document.body.appendChild(bar);
+  const menu=document.createElement('div'); menu.id='userMenu'; menu.className='no-print';
+  menu.innerHTML='<div id="userMenuInfo"></div><button id="userMenuOut" class="btn btn-primary btn-sm">ออกจากระบบ</button>';
+  document.body.appendChild(menu);
+  document.getElementById('userBarOut').onclick=cloudLogout;
+  document.getElementById('userMenuOut').onclick=cloudLogout;
+  const av=document.querySelector('.topbar .topbar-avatar');
+  if(av){ av.style.cursor='pointer'; av.title='บัญชีผู้ใช้'; av.onclick=(e)=>{ e.stopPropagation(); menu.classList.toggle('open'); }; }
+  document.addEventListener('click',e=>{ if(!menu.contains(e.target)) menu.classList.remove('open'); });
+}
 function applyRoleUI(){
   const u=AUTH.user||{}, isAdmin=AUTH.role==='admin';
+  ensureUserBar();
+  document.getElementById('userBarName').textContent='👤 '+(u.name||u.email||'')+(isAdmin?' (ผู้ดูแล)':' (ครู)');
+  document.getElementById('userMenuInfo').innerHTML='<b>'+cEsc(u.name||'')+'</b> '+(isAdmin?'(ผู้ดูแล)':'(ครู)')+'<br><span>'+cEsc(u.email||'')+'</span>';
+  document.body.classList.add('cloud-user');
   document.body.classList.toggle('role-teacher',!isAdmin);
   document.body.classList.toggle('role-admin',isAdmin);
   const chip=document.getElementById('userChip');
